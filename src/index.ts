@@ -79,6 +79,11 @@ bot.command('remove', (ctx) => {
 bot.action(Actions.AddDAOAddress, async (ctx) => {
   // Handle button action for adding DAO to alerts
 
+});
+
+bot.action(Actions.RemoveDAOAddress, async (ctx: Context & { callbackQuery: CallbackQuery }) => {
+  // Handle button action for removing DAO from alerts
+
   const callbackData = ctx.callbackQuery.message; // The address of the DAO that needs to be deleted is stored
 
   const nameResult = await new Promise<any[]>((resolve, reject) => {
@@ -108,10 +113,7 @@ bot.action(Actions.AddDAOAddress, async (ctx) => {
   } else {
     ctx.answerCbQuery(`Could not find DAO with the specified address.`, {show_alert: true});
   }  
-});
 
-bot.action(Actions.RemoveDAOAddress, async (ctx: Context & { callbackQuery: CallbackQuery }) => {
-  // Handle button action for removing DAO from alerts
 });
 
 
