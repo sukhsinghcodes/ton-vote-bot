@@ -61,19 +61,23 @@ bot.command('list', async (ctx) => {
       Markup.button.webApp(item.daoName, `${tonVoteUrl}/${item.daoAddress}`),
     );
 
-    await ctx.reply('You are subscribed to the following DAOs:', Markup.inlineKeyboard(buttons));
+    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+
+    await ctx.reply(
+      'You are subscribed to the following DAOs:',
+      Markup.inlineKeyboard(buttonsTable),
+    );
   } catch (err) {
     console.log('An error occured when executing the list command', err);
   }
 });
 
-bot.command('set', async (ctx) => {
+bot.command('add', async (ctx) => {
   const { chat } = ctx.message;
   if (chat.type === 'group' || chat.type === 'supergroup') {
     return;
   }
 
-  // Handle cmd set
   try {
     const daos = await api.daos();
 
@@ -110,7 +114,7 @@ bot.action(/^add:/g, async (ctx) => {
     }
 
     const dao = await api.dao(daoAddress);
-    console.log(dao);
+
     await db.insert({
       chatId: ctx.chat.id,
       daoAddress: dao.address,
@@ -145,8 +149,6 @@ bot.command('remove', async (ctx) => {
     );
 
     const buttonsTable = convertArrayTo2dArray(buttons, 2);
-
-    console.log(buttonsTable);
 
     await ctx.reply(
       'Click on the DAO from the list below to remove:',
