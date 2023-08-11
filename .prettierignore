@@ -1,0 +1,20 @@
+##########
+# If adding to this file, think about updating .eslintignore too
+##########
+
+# General #
+##########
+build/
+coverage/
+dist/
+vars/
+vendor/
+.cache/
+public/
+CHANGELOG.md
+generated/
+.yarn
+.github/workflows
+diagnostics/**.md
+*.tfstate
+**/.gen
