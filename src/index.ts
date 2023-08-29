@@ -37,9 +37,16 @@ bot.start(async (ctx) => {
 
   // Handle start for private chats
   ctx.sendMessage(
-    'Welcome to TON Vote Bot. I will send you alerts for new proposals in the DAOs you have subscribed to.\n\n- To subscribe to a DAO, send /set and follow the instructions.\n- To unsubscribe from a DAO, send /remove and follow the instructions.\n- To view the DAOs you are subscribed to, send /list.\n\nFor more information, send /help.',
+    'Welcome to TON Vote Bot. I can send you daily alerts for DAOs and their proposals.\n\n- To subscribe to a DAO, select /add from the menu and follow the instructions.\n- To unsubscribe from a DAO, select /remove from the menu and follow the instructions.\n- To view the DAOs you are subscribed to, select /list from the menu.',
     Markup.inlineKeyboard([Markup.button.webApp('Open TON Vote', tonVoteUrl)]),
   );
+});
+
+bot.command('open', async (ctx) => {
+  const { chat } = ctx.message;
+  if (chat.type === 'group' || chat.type === 'supergroup') {
+    return;
+  }
 });
 
 bot.command('list', async (ctx) => {
@@ -248,6 +255,13 @@ const dailyReportScheduler = new CronJob('0 0 0 * * *', async () => {
 //   // Your post_new_proposal logic here
 //   console.log('Running proposalSchedular');
 // });
+
+bot.telegram.setMyCommands([
+  { command: 'start', description: 'Welcome to TON Vote' },
+  { command: 'list', description: 'List all DAOs you are subscribed to' },
+  { command: 'add', description: 'Subscribe to a DAO' },
+  { command: 'remove', description: 'Unsubscribe from a DAO' },
+]);
 
 // Start the bot and schedulers
 bot.launch();
