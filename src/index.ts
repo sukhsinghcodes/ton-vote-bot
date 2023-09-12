@@ -5,7 +5,7 @@ import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/type
 import { Database } from './db';
 import * as api from './api';
 import { botWebAppUrl, subscribeUrl, tonVoteUrl } from './config';
-import { groupBy } from './utils';
+import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
 
 dotenv.config();
@@ -99,6 +99,57 @@ bot.command('list', async (ctx) => {
   }
 });
 
+bot.command('unsubscribe', async (ctx) => {
+  const { chat } = ctx.message;
+  if (chat.type === 'private') {
+    return;
+  }
+
+  // Handle cmd unsubscribe
+  try {
+    const subscriptions = await db.getAllByGroupId(ctx.chat.id);
+
+    if (!subscriptions.length) {
+      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
+      return;
+    }
+
+    const buttons = subscriptions.map((item) =>
+      Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
+    );
+
+    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+
+    await ctx.reply(
+      'Click on the DAO from the list below to unsubscribe:',
+      Markup.inlineKeyboard(buttonsTable),
+    );
+  } catch (err) {
+    console.log('An error occured when executing the unsubscribe command', err);
+  }
+});
+
+bot.action(/^rm:/g, async (ctx: Context) => {
+  // Handle button action for removing DAO subscriptions
+  try {
+    if (!ctx.callbackQuery) {
+      throw new Error();
+    }
+
+    const chatId = ctx.callbackQuery.message?.chat.id;
+    const daoAddress = (ctx.callbackQuery as CallbackQuery.DataQuery).data.split(':')[1];
+    const subscriptionId = `${chatId}:${daoAddress}`;
+
+    const { daoName } = await db.get(subscriptionId);
+    await db.delete(subscriptionId);
+
+    ctx.answerCbQuery(`You have unsubscribed from ${daoName}`, { show_alert: true });
+    ctx.deleteMessage();
+  } catch (err) {
+    ctx.answerCbQuery(`Could not find DAO with the specified address.`, { show_alert: true });
+  }
+});
+
 bot.on('message', async (ctx) => {
   try {
     const { chat } = ctx.message;
@@ -123,81 +174,6 @@ bot.on('message', async (ctx) => {
     ctx.reply(`You have subscribed to ${data.name}`);
   } catch (err) {
     console.log('An error occured when subscribing', err);
-  }
-});
-
-bot.command('remove', async (ctx) => {
-  const { chat } = ctx.message;
-  if (chat.type !== 'private') {
-    return;
-  }
-
-  // Handle cmd remove
-  try {
-    const subscriptions = await db.getAllByUserId(ctx.chat.id);
-
-    if (!subscriptions.length) {
-      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
-      return;
-    }
-
-    // TODO: Group subscriptions by group id
-
-    // const group = await ctx.telegram.getChat(chat.id)
-
-    const groupedSubscriptions = groupBy(subscriptions, 'groupId');
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const buttonsTable: any[][] = [];
-
-    for (const key in groupedSubscriptions) {
-      const group = await ctx.telegram.getChat(chat.id);
-
-      if (group.type === 'private') {
-        continue;
-      }
-
-      buttonsTable.push([Markup.button.text(group.title)]);
-      const daos = groupedSubscriptions[key];
-      const daoButtons = daos.map((item) => {
-        Markup.button.callback(item.daoName, `rm:${item.daoAddress}`);
-      });
-      buttonsTable.push(daoButtons);
-    }
-
-    // const buttons = subscriptions.map((item) =>
-    //   Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
-    // );
-
-    // const buttonsTable = convertArrayTo2dArray(buttons, 2);
-
-    await ctx.reply(
-      'Click on the DAO from the list below to remove:',
-      Markup.inlineKeyboard(buttonsTable),
-    );
-  } catch (err) {
-    console.log('An error occured when executing the remove command', err);
-  }
-});
-
-bot.action(/^rm:/g, async (ctx: Context) => {
-  // Handle button action for removing DAO subscriptions
-  try {
-    if (!ctx.callbackQuery) {
-      throw new Error();
-    }
-
-    const chatId = ctx.callbackQuery.message?.chat.id;
-    const daoAddress = (ctx.callbackQuery as CallbackQuery.DataQuery).data.split(':')[1];
-    const subscriptionId = `${chatId}:${daoAddress}`;
-
-    const { daoName } = await db.get(subscriptionId);
-    await db.delete(subscriptionId);
-
-    ctx.answerCbQuery(`You have unsubscribed from ${daoName}`, { show_alert: true });
-    ctx.deleteMessage();
-  } catch (err) {
-    ctx.answerCbQuery(`Could not find DAO with the specified address.`, { show_alert: true });
   }
 });
 
@@ -278,7 +254,7 @@ bot.telegram.setMyCommands([
   { command: 'start', description: 'Welcome to TON Vote' },
   { command: 'list', description: 'List all DAOs you are subscribed to' },
   { command: 'subscribe', description: 'Subscribe to a DAO' },
-  { command: 'remove', description: 'Unsubscribe from a DAO' },
+  { command: 'unsubscribe', description: 'Unsubscribe from a DAO' },
 ]);
 
 // Start the bot and schedulers
