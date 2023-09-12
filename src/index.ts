@@ -1,161 +1,175 @@
 import { Context, Markup, Telegraf } from 'telegraf';
 import dotenv from 'dotenv';
 import { CronJob } from 'cron';
-import { CallbackQuery, Update } from 'telegraf/typings/core/types/typegram';
+import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
 import * as api from './api';
-import { tonVoteUrl } from './config';
-import { convertArrayTo2dArray } from './utils';
+import { botWebAppUrl, subscribeUrl, tonVoteUrl } from './config';
+import { groupBy } from './utils';
+import { WebAppDataSubscribe } from './types';
 
 dotenv.config();
 
 const bot = new Telegraf<Context<Update>>(process.env.BOT_TOKEN as string);
 const db = new Database();
 
-enum Actions {
-  AddDAOAddress = 'add',
-  RemoveDAOAddress = 'rm',
-}
-
 bot.start(async (ctx) => {
   const { chat } = ctx.message;
-  if (chat.type !== 'private') {
-    // Handle start for group chats
 
-    // ctx.sendMessage(
-    //   'Thanks for adding me to your group. I will now send you alerts for new proposals in the DAOs you have subscribed to.',
-    //   Markup.inlineKeyboard([
-    //     Markup.button.url(
-    //       'Open TON Vote',
-    //       'https://t.me/sukhtonvotebot/sukhTONvote?startapp=command',
-    //     ),
-    //   ]),
-    // );
-
+  if (chat.type === 'private') {
     return;
   }
 
-  // Handle start for private chats
+  // Handle start for group chats
   ctx.sendMessage(
-    'Welcome to TON Vote Bot. I can send you daily alerts for DAOs and their proposals.\n\n- To subscribe to a DAO, select /add from the menu and follow the instructions.\n- To unsubscribe from a DAO, select /remove from the menu and follow the instructions.\n- To view the DAOs you are subscribed to, select /list from the menu.',
-    Markup.inlineKeyboard([Markup.button.webApp('Open TON Vote', tonVoteUrl)]),
+    'Thanks for adding me to your group. To view proposals please open TON Vote.',
+    Markup.inlineKeyboard([Markup.button.url('Open TON Vote', botWebAppUrl)]),
   );
+
+  const admins = await ctx.getChatAdministrators();
+  const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
+
+  if (isAdmin) {
+    console.log('button url', `${subscribeUrl}&groupId=${chat.id}`);
+
+    ctx.telegram.sendMessage(
+      ctx.from.id,
+      `Subscribe your group, *${chat.title}*, to a DAO to receive notifications about proposals:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: Markup.keyboard([
+          Markup.button.webApp('Subscribe', `${subscribeUrl}&groupId=${chat.id}`),
+        ]).reply_markup,
+      },
+    );
+  }
 });
 
-bot.command('open', async (ctx) => {
+bot.command('subscribe', async (ctx) => {
+  // subscribe is triggered from a group chat but confirmed in a private chat
   const { chat } = ctx.message;
-  if (chat.type === 'group' || chat.type === 'supergroup') {
+
+  if (chat.type === 'private') {
+    ctx.sendMessage('Use the subscribe command in the group chat you want to subscribe to.');
     return;
+  }
+
+  const admins = await ctx.getChatAdministrators();
+  const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
+
+  if (isAdmin) {
+    console.log('button url', `${subscribeUrl}&groupId=${chat.id}`);
+
+    ctx.telegram.sendMessage(
+      ctx.from.id,
+      `Subscribe your group, *${chat.title}*, to a DAO to receive notifications about proposals:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: Markup.keyboard([
+          Markup.button.webApp('Subscribe', `${subscribeUrl}&groupId=${chat.id}`),
+        ]).resize().reply_markup,
+      },
+    );
   }
 });
 
 bot.command('list', async (ctx) => {
   const { chat } = ctx.message;
-  if (chat.type === 'group' || chat.type === 'supergroup') {
+  if (chat.type === 'private') {
     return;
   }
 
   // Handle cmd list
   try {
-    const subscriptions = await db.getAllByChatId(ctx.chat.id);
+    const subscriptions = await db.getAllByGroupId(ctx.chat.id);
 
     if (!subscriptions.length) {
-      await ctx.reply('You have no subscriptions. Add a new DAO using the /set command.');
+      await ctx.reply('You have no subscriptions.');
       return;
     }
 
-    const buttons = subscriptions.map((item) =>
-      Markup.button.webApp(item.daoName, `${tonVoteUrl}/${item.daoAddress}`),
-    );
-
-    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+    const list = subscriptions.map((item) => `- ${item.daoName}`).join('\n');
 
     await ctx.reply(
-      'You are subscribed to the following DAOs:',
-      Markup.inlineKeyboard(buttonsTable),
+      `You are subscribed to the following DAOs:\n${list}`,
+      Markup.inlineKeyboard([Markup.button.url('Open TON Vote', botWebAppUrl)]),
     );
   } catch (err) {
     console.log('An error occured when executing the list command', err);
   }
 });
 
-bot.command('add', async (ctx) => {
-  const { chat } = ctx.message;
-  if (chat.type === 'group' || chat.type === 'supergroup') {
-    return;
-  }
-
+bot.on('message', async (ctx) => {
   try {
-    const daos = await api.daos();
+    const { chat } = ctx.message;
 
-    const buttons = daos.map((item) =>
-      Markup.button.callback(
-        JSON.parse(item.daoMetadata.metadataArgs.name).en,
-        `${Actions.AddDAOAddress}:${item.daoAddress}`,
-      ),
-    );
+    const message = ctx.update.message as Message.WebAppDataMessage;
 
-    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+    console.log('Received web app data', message.web_app_data);
 
-    await ctx.reply(
-      'Select the DAO address you want to subscribe to:',
-      Markup.inlineKeyboard(buttonsTable),
-    );
-  } catch (err) {
-    console.log('An error occured when executing the set command', err);
-  }
-});
-
-bot.action(/^add:/g, async (ctx) => {
-  if (!ctx.callbackQuery) {
-    ctx.answerCbQuery(`No DAO address`, { show_alert: true });
-  }
-
-  const chatId = ctx.callbackQuery.message?.chat.id;
-  const daoAddress = (ctx.callbackQuery as CallbackQuery.DataQuery).data.split(':')[1];
-  const subscriptionId = `${chatId}:${daoAddress}`;
-
-  try {
-    if (!ctx.chat) {
-      throw new Error();
+    if (!message.web_app_data) {
+      return;
     }
 
-    const dao = await api.dao(daoAddress);
+    const data: WebAppDataSubscribe = JSON.parse(message.web_app_data.data);
 
     await db.insert({
-      chatId: ctx.chat.id,
-      daoAddress: dao.address,
-      daoName: dao.name,
-      id: subscriptionId,
+      groupId: data.groupId,
+      userId: chat.id,
+      daoAddress: data.address,
+      daoName: data.name,
     });
 
-    ctx.answerCbQuery(`You have subscribed to ${dao.name}`, { show_alert: true });
-    ctx.deleteMessage();
+    ctx.reply(`You have subscribed to ${data.name}`);
   } catch (err) {
-    ctx.answerCbQuery(`There was an error when subscribing to ${daoAddress}`, { show_alert: true });
+    console.log('An error occured when subscribing', err);
   }
 });
 
 bot.command('remove', async (ctx) => {
   const { chat } = ctx.message;
-  if (chat.type === 'group' || chat.type === 'supergroup') {
+  if (chat.type !== 'private') {
     return;
   }
 
   // Handle cmd remove
   try {
-    const subscriptions = await db.getAllByChatId(ctx.chat.id);
+    const subscriptions = await db.getAllByUserId(ctx.chat.id);
 
     if (!subscriptions.length) {
-      await ctx.reply('The list is empty. Add a new DAO using the /set command.');
+      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
       return;
     }
 
-    const buttons = subscriptions.map((item) =>
-      Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
-    );
+    // TODO: Group subscriptions by group id
 
-    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+    // const group = await ctx.telegram.getChat(chat.id)
+
+    const groupedSubscriptions = groupBy(subscriptions, 'groupId');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buttonsTable: any[][] = [];
+
+    for (const key in groupedSubscriptions) {
+      const group = await ctx.telegram.getChat(chat.id);
+
+      if (group.type === 'private') {
+        continue;
+      }
+
+      buttonsTable.push([Markup.button.text(group.title)]);
+      const daos = groupedSubscriptions[key];
+      const daoButtons = daos.map((item) => {
+        Markup.button.callback(item.daoName, `rm:${item.daoAddress}`);
+      });
+      buttonsTable.push(daoButtons);
+    }
+
+    // const buttons = subscriptions.map((item) =>
+    //   Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
+    // );
+
+    // const buttonsTable = convertArrayTo2dArray(buttons, 2);
 
     await ctx.reply(
       'Click on the DAO from the list below to remove:',
@@ -187,7 +201,7 @@ bot.action(/^rm:/g, async (ctx: Context) => {
   }
 });
 
-const dailyReportScheduler = new CronJob('0 0 0 * * *', async () => {
+const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
   // Your post_info_proposals_daily logic here
   console.log('Running dailyReportScheduler');
 
@@ -224,30 +238,34 @@ const dailyReportScheduler = new CronJob('0 0 0 * * *', async () => {
       activeProposals.push(proposal);
     });
 
-    bot.telegram.sendMessage(
-      subscription.chatId,
-      `Daily report for *${dao.name}*\n\nActive proposals:\n${
-        pendingProposals.length > 0
-          ? activeProposals
-              .map(
-                (p) =>
-                  `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address}): ✅ Yes ${
-                    p.yes || 0
-                  }, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
-              )
-              .join('\n')
-          : '_No active proposals_'
-      }\n\nPending proposals:\n${
-        pendingProposals.length > 0
-          ? pendingProposals
-              .map((p) => `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`)
-              .join('\n')
-          : '_No pending proposals_'
-      }`,
-      {
-        parse_mode: 'Markdown',
-      },
-    );
+    if (activeProposals.length > 0) {
+      bot.telegram.sendMessage(
+        subscription.groupId,
+        `Daily report for *${dao.name}*\n\nActive proposals:\n${activeProposals
+          .map(
+            (p) =>
+              `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address}): ✅ Yes ${
+                p.yes || 0
+              }, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
+          )
+          .join('\n')}`,
+        {
+          parse_mode: 'Markdown',
+        },
+      );
+    }
+
+    if (pendingProposals.length > 0) {
+      bot.telegram.sendMessage(
+        subscription.groupId,
+        `Pending proposals:\n${pendingProposals
+          .map((p) => `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`)
+          .join('\n')}`,
+        {
+          parse_mode: 'Markdown',
+        },
+      );
+    }
   }
 });
 
@@ -259,7 +277,7 @@ const dailyReportScheduler = new CronJob('0 0 0 * * *', async () => {
 bot.telegram.setMyCommands([
   { command: 'start', description: 'Welcome to TON Vote' },
   { command: 'list', description: 'List all DAOs you are subscribed to' },
-  { command: 'add', description: 'Subscribe to a DAO' },
+  { command: 'subscribe', description: 'Subscribe to a DAO' },
   { command: 'remove', description: 'Unsubscribe from a DAO' },
 ]);
 

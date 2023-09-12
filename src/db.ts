@@ -1,13 +1,5 @@
 import sqlite3 from 'sqlite3';
-
-type SubscriptionId = string;
-
-export type Subscription = {
-  id: SubscriptionId; // "chatId:daoAddress"
-  chatId: number; // userId or groupId
-  daoAddress: string;
-  daoName: string;
-};
+import { NewSubscription, Subscription, SubscriptionId } from './types';
 
 export class Database {
   private db;
@@ -18,7 +10,8 @@ export class Database {
     const createTable = `
       CREATE TABLE IF NOT EXISTS subscriptions (
         id TEXT PRIMARY KEY NOT NULL,
-        chatId INTEGER NOT NULL,
+        groupId INTEGER NOT NULL,
+        userId INTEGER NOT NULL,
         daoAddress TEXT NOT NULL,
         daoName TEXT NOT NULL
       )
@@ -27,16 +20,28 @@ export class Database {
     this.db.run(createTable);
   }
 
-  insert(newSubscription: Subscription): Promise<boolean> {
-    const { id, chatId, daoAddress, daoName } = newSubscription;
+  async insert(newSubscription: NewSubscription): Promise<boolean> {
+    const { groupId, userId, daoName, daoAddress } = newSubscription;
+
+    const id = `${groupId}:${daoAddress}`;
+
+    // Check if subscription already exists
+    try {
+      const subscription = await this.get(id);
+      if (subscription) {
+        return Promise.reject(new Error('Subscription already exists'));
+      }
+    } catch (err) {
+      // Subscription does not exist
+    }
 
     return new Promise<boolean>((resolve, reject) => {
       const insert = `
-        INSERT INTO subscriptions (id, chatId, daoAddress, daoName)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO subscriptions (id, groupId, userId, daoName, daoAddress)
+        VALUES (?, ?, ?, ?, ?)
       `;
 
-      this.db.run(insert, [id, chatId, daoAddress, daoName], (err) => {
+      this.db.run(insert, [id, groupId, userId, daoName, daoAddress], (err) => {
         if (err) {
           reject(err);
           return;
@@ -60,11 +65,28 @@ export class Database {
     });
   }
 
-  getAllByChatId(chatId: number): Promise<Subscription[]> {
+  getAllByUserId(userId: number): Promise<Subscription[]> {
     return new Promise<Subscription[]>((resolve, reject) => {
       this.db.all(
-        'SELECT * FROM subscriptions WHERE chatId = ?',
-        [chatId],
+        'SELECT * FROM subscriptions WHERE userId = ?',
+        [userId],
+        (err, rows: Subscription[]) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve(rows);
+        },
+      );
+    });
+  }
+
+  getAllByGroupId(groupId: number): Promise<Subscription[]> {
+    return new Promise<Subscription[]>((resolve, reject) => {
+      this.db.all(
+        'SELECT * FROM subscriptions WHERE groupId = ?',
+        [groupId],
         (err, rows: Subscription[]) => {
           if (err) {
             reject(err);
