@@ -246,8 +246,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         continue;
       }
 
-      console.log(dao);
-
       const results = await Promise.allSettled(
         dao.daoProposals.map((proposalAddress) => api.proposal(proposalAddress)),
       );
@@ -289,11 +287,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           },
         );
 
-        console.log('New proposal', p);
-
-        console.log('Proposal start time', new Date(p.proposalStartTime * 1000));
-        console.log('Proposal end time', new Date(p.proposalEndTime * 1000));
-
         // set cron job for proposal start
         new CronJob(
           new Date(p.proposalStartTime * 1000),
@@ -311,8 +304,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                 parse_mode: 'Markdown',
               },
             );
-
-            console.log('Proposal started', p);
           },
           null,
           true,
@@ -337,8 +328,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                 parse_mode: 'Markdown',
               },
             );
-
-            console.log('Proposal ended', p);
           },
           null,
           true,
