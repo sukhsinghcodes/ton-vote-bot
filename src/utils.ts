@@ -1,4 +1,4 @@
-import { tonVoteQueryParams, tonVoteUrl } from './config';
+import { appConfig } from './config';
 
 export function convertArrayTo2dArray<T>(array: T[], columns: number): T[][] {
   const rows = Math.ceil(array.length / columns);
@@ -13,7 +13,7 @@ export function convertArrayTo2dArray<T>(array: T[], columns: number): T[][] {
 }
 
 export function generateWebAppUrl(path: string): string {
-  return `${tonVoteUrl}${path}${tonVoteQueryParams}`;
+  return `${appConfig.tonVoteUrl}${path}${appConfig.tonVoteQueryParams}`;
 }
 
 export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {

@@ -1,14 +1,11 @@
 import { Context, Markup, Telegraf } from 'telegraf';
-import dotenv from 'dotenv';
 import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
 import * as api from './api';
-import { botWebAppUrl, subscribeUrl, tonVoteUrl } from './config';
+import { appConfig } from './config';
 import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
-
-dotenv.config();
 
 const bot = new Telegraf<Context<Update>>(process.env.BOT_TOKEN as string);
 const db = new Database();
@@ -23,14 +20,16 @@ bot.start(async (ctx) => {
   // Handle start for group chats
   ctx.sendMessage(
     'Thanks for adding me to your group. To view proposals please open TON Vote.',
-    Markup.inlineKeyboard([Markup.button.url('Open TON Vote', botWebAppUrl)]),
+    Markup.inlineKeyboard([
+      Markup.button.url('Open TON Vote', appConfig.getGroupLaunchWebAppUrl(ctx.botInfo.username)),
+    ]),
   );
 
   const admins = await ctx.getChatAdministrators();
   const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
 
   if (isAdmin) {
-    console.log('button url', `${subscribeUrl}&groupId=${chat.id}`);
+    console.log('button url', `${appConfig.subscribeUrl}&groupId=${chat.id}`);
 
     ctx.telegram.sendMessage(
       ctx.from.id,
@@ -38,7 +37,7 @@ bot.start(async (ctx) => {
       {
         parse_mode: 'Markdown',
         reply_markup: Markup.keyboard([
-          Markup.button.webApp('Subscribe', `${subscribeUrl}&groupId=${chat.id}`),
+          Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${chat.id}`),
         ]).reply_markup,
       },
     );
@@ -58,7 +57,7 @@ bot.command('subscribe', async (ctx) => {
   const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
 
   if (isAdmin) {
-    console.log('button url', `${subscribeUrl}&groupId=${chat.id}`);
+    console.log('button url', `${appConfig.subscribeUrl}&groupId=${chat.id}`);
 
     ctx.telegram.sendMessage(
       ctx.from.id,
@@ -66,7 +65,7 @@ bot.command('subscribe', async (ctx) => {
       {
         parse_mode: 'Markdown',
         reply_markup: Markup.keyboard([
-          Markup.button.webApp('Subscribe', `${subscribeUrl}&groupId=${chat.id}`),
+          Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${chat.id}`),
         ]).resize().reply_markup,
       },
     );
@@ -94,7 +93,9 @@ bot.command('list', async (ctx) => {
 
     await ctx.reply(
       `You are subscribed to the following DAOs:\n${list}`,
-      Markup.inlineKeyboard([Markup.button.url('Open TON Vote', botWebAppUrl)]),
+      Markup.inlineKeyboard([
+        Markup.button.url('Open TON Vote', appConfig.getGroupLaunchWebAppUrl(ctx.botInfo.username)),
+      ]),
     );
   } catch (err) {
     console.log('An error occured when executing the list command', err);
@@ -227,9 +228,9 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
         `Daily report for *${dao.name}*\n\nActive proposals:\n${activeProposals
           .map(
             (p) =>
-              `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address}): ✅ Yes ${
-                p.yes || 0
-              }, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
+              `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
+                p.address
+              }): ✅ Yes ${p.yes || 0}, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
           )
           .join('\n')}`,
         {
@@ -242,7 +243,9 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
       bot.telegram.sendMessage(
         subscription.groupId,
         `Pending proposals:\n${pendingProposals
-          .map((p) => `- [${p.title}](${tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`)
+          .map(
+            (p) => `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`,
+          )
           .join('\n')}`,
         {
           parse_mode: 'Markdown',
