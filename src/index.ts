@@ -2,10 +2,10 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
-import * as api from './api';
 import { appConfig } from './config';
 import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
+import { getDaoReportMessages } from './messages';
 
 const bot = new Telegraf<Context<Update>>(process.env.BOT_TOKEN as string);
 const db = new Database();
@@ -89,14 +89,16 @@ bot.command('list', async (ctx) => {
       return;
     }
 
-    const list = subscriptions.map((item) => `- ${item.daoName}`).join('\n');
+    const list = subscriptions
+      .map((item) => `- [${item.daoName}](${appConfig.tonVoteUrl}/${item.daoAddress})`)
+      .join('\n');
 
-    await ctx.reply(
-      `You are subscribed to the following DAOs:\n${list}`,
-      Markup.inlineKeyboard([
+    await ctx.reply(`This group is subscribed to the following DAOs:\n${list}`, {
+      reply_markup: Markup.inlineKeyboard([
         Markup.button.url('Open TON Vote', appConfig.getGroupLaunchWebAppUrl(ctx.botInfo.username)),
-      ]),
-    );
+      ]).reply_markup,
+      parse_mode: 'Markdown',
+    });
   } catch (err) {
     console.log('An error occured when executing the list command', err);
   }
@@ -153,9 +155,36 @@ bot.action(/^rm:/g, async (ctx: Context) => {
   }
 });
 
-bot.command('info', async (ctx) => {
-  // Handle cmd info
-  await ctx.reply(JSON.stringify(ctx.botInfo));
+bot.command('report', async (ctx) => {
+  const { chat } = ctx.message;
+  if (chat.type === 'private') {
+    return;
+  }
+
+  // Handle cmd report
+  try {
+    const subscriptions = await db.getAllByGroupId(ctx.chat.id);
+
+    if (!subscriptions.length) {
+      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
+      return;
+    }
+
+    const messages = await getDaoReportMessages(subscriptions);
+
+    if (!messages.length) {
+      await ctx.reply('There are no active or pending proposals for your subscriptions.');
+      return;
+    }
+
+    messages.forEach(({ message }) => {
+      ctx.sendMessage(message, {
+        parse_mode: 'Markdown',
+      });
+    });
+  } catch (err) {
+    console.log('An error occured when executing the report command', err);
+  }
 });
 
 bot.on('message', async (ctx) => {
@@ -187,72 +216,17 @@ bot.on('message', async (ctx) => {
 
 const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
   // Your post_info_proposals_daily logic here
-  console.log('Running dailyReportScheduler');
+  console.log('Running dailyReportScheduler...');
 
   const subscriptions = await db.getAll();
 
-  for (const subscription of subscriptions) {
-    const { daoAddress } = subscription;
+  const messages = await getDaoReportMessages(subscriptions);
 
-    const dao = await api.dao(daoAddress);
-
-    if (!dao) {
-      continue;
-    }
-
-    const results = await Promise.allSettled(
-      dao.daoProposals.map((proposalAddress) => api.proposal(proposalAddress)),
-    );
-
-    const proposals = results
-      .filter((p) => p.status === 'fulfilled')
-      .map((p) => (p as PromiseFulfilledResult<api.ProposalMetadata>).value);
-
-    const activeProposals: api.ProposalMetadata[] = [];
-    const pendingProposals: api.ProposalMetadata[] = [];
-
-    proposals.forEach((proposal) => {
-      const nowUnixInSeconds = Math.floor(Date.now() / 1000);
-
-      if (nowUnixInSeconds < proposal.proposalStartTime) {
-        pendingProposals.push(proposal);
-        return;
-      }
-
-      activeProposals.push(proposal);
+  messages.forEach(({ groupId, message }) => {
+    bot.telegram.sendMessage(groupId, message, {
+      parse_mode: 'Markdown',
     });
-
-    if (activeProposals.length > 0) {
-      bot.telegram.sendMessage(
-        subscription.groupId,
-        `Daily report for *${dao.name}*\n\nActive proposals:\n${activeProposals
-          .map(
-            (p) =>
-              `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
-                p.address
-              }): ✅ Yes ${p.yes || 0}, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
-          )
-          .join('\n')}`,
-        {
-          parse_mode: 'Markdown',
-        },
-      );
-    }
-
-    if (pendingProposals.length > 0) {
-      bot.telegram.sendMessage(
-        subscription.groupId,
-        `Pending proposals:\n${pendingProposals
-          .map(
-            (p) => `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`,
-          )
-          .join('\n')}`,
-        {
-          parse_mode: 'Markdown',
-        },
-      );
-    }
-  }
+  });
 });
 
 // const proposalSchedular = new CronJob('0 */1 * * * *', async () => {
@@ -265,7 +239,7 @@ bot.telegram.setMyCommands([
   { command: 'list', description: 'List all DAOs you are subscribed to' },
   { command: 'subscribe', description: 'Subscribe to a DAO' },
   { command: 'unsubscribe', description: 'Unsubscribe from a DAO' },
-  { command: 'info', description: 'Get info about this bot' },
+  { command: 'report', description: "Get a report of the DAOs you're subscribed to" },
 ]);
 
 // Start the bot and schedulers
