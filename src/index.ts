@@ -39,7 +39,7 @@ bot.start(async (ctx) => {
         parse_mode: 'Markdown',
         reply_markup: Markup.keyboard([
           Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${chat.id}`),
-        ]).reply_markup,
+        ]).resize().reply_markup,
       },
     );
   }
