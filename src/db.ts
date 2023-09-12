@@ -7,7 +7,7 @@ export class Database {
   constructor() {
     this.db = new sqlite3.Database('tonvote.db');
 
-    const createTable = `
+    const createSubscriptionsTable = `
       CREATE TABLE IF NOT EXISTS subscriptions (
         id TEXT PRIMARY KEY NOT NULL,
         groupId INTEGER NOT NULL,
@@ -17,7 +17,15 @@ export class Database {
       )
     `;
 
-    this.db.run(createTable);
+    this.db.run(createSubscriptionsTable);
+
+    const createReadProposalsTable = `
+      CREATE TABLE IF NOT EXISTS readProposals (
+        id TEXT PRIMARY KEY NOT NULL
+      )
+    `;
+
+    this.db.run(createReadProposalsTable);
   }
 
   async insert(newSubscription: NewSubscription): Promise<boolean> {
@@ -115,6 +123,50 @@ export class Database {
   delete(id: SubscriptionId): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this.db.run('DELETE FROM subscriptions WHERE id = ?', [id], (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
+  }
+
+  insertReadProposal(id: string): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      const insert = `
+        INSERT INTO readProposals (id)
+        VALUES (?)
+      `;
+
+      this.db.run(insert, [id], (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
+  }
+
+  containsReadProposal(id: string): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.db.all('SELECT * FROM readProposals WHERE id = ?', [id], (err, rows: string[]) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(rows.length > 0);
+      });
+    });
+  }
+
+  clearProposals(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.db.run('DELETE FROM readProposals', (err) => {
         if (err) {
           reject(err);
           return;

@@ -2,15 +2,15 @@ import { appConfig } from './config';
 import * as api from './api';
 import { Subscription } from './types';
 
-type DaoReportMessage = {
+type ReportMessage = {
   groupId: number;
   message: string;
 };
 
 export async function getDaoReportMessages(
   subscriptions: Subscription[],
-): Promise<DaoReportMessage[]> {
-  const messages: DaoReportMessage[] = [];
+): Promise<ReportMessage[]> {
+  const messages: ReportMessage[] = [];
 
   try {
     for (const subscription of subscriptions) {
