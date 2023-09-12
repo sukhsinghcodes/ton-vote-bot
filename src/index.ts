@@ -70,6 +70,8 @@ bot.command('subscribe', async (ctx) => {
         ]).resize().reply_markup,
       },
     );
+  } else {
+    ctx.sendMessage('You must be an admin to use this command.');
   }
 });
 
@@ -148,6 +150,11 @@ bot.action(/^rm:/g, async (ctx: Context) => {
   } catch (err) {
     ctx.answerCbQuery(`Could not find DAO with the specified address.`, { show_alert: true });
   }
+});
+
+bot.command('info', async (ctx) => {
+  // Handle cmd info
+  await ctx.reply(JSON.stringify(ctx.botInfo));
 });
 
 bot.on('message', async (ctx) => {
@@ -255,6 +262,7 @@ bot.telegram.setMyCommands([
   { command: 'list', description: 'List all DAOs you are subscribed to' },
   { command: 'subscribe', description: 'Subscribe to a DAO' },
   { command: 'unsubscribe', description: 'Unsubscribe from a DAO' },
+  { command: 'info', description: 'Get info about this bot' },
 ]);
 
 // Start the bot and schedulers
