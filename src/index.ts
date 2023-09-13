@@ -7,72 +7,42 @@ import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
 import * as api from './api';
+import { subscribe } from './commands';
 
 const bot = new Telegraf<Context<Update>>(process.env.BOT_TOKEN as string);
 const db = new Database();
 
 bot.start(async (ctx) => {
-  const { chat } = ctx.message;
+  try {
+    const { chat } = ctx.message;
 
-  if (chat.type === 'private') {
-    return;
-  }
+    if (chat.type === 'private') {
+      ctx.sendMessage('To get started, use /start in a group I have been added to.');
+      return;
+    }
 
-  // Handle start for group chats
-  ctx.sendMessage(
-    'Thanks for adding me to your group. To view proposals please open TON Vote.',
-    Markup.inlineKeyboard([
-      Markup.button.url('Open TON Vote', appConfig.getGroupLaunchWebAppUrl(ctx.botInfo.username)),
-    ]),
-  );
-
-  const admins = await ctx.getChatAdministrators();
-  const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
-
-  if (isAdmin) {
-    console.log('button url', `${appConfig.subscribeUrl}&groupId=${chat.id}`);
-
-    ctx.telegram.sendMessage(
-      ctx.from.id,
-      `Subscribe your group, *${chat.title}*, to a DAO to receive notifications about proposals:`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: Markup.keyboard([
-          Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${chat.id}`),
-        ]).resize().reply_markup,
-      },
+    // Handle start for group chats
+    ctx.sendMessage(
+      'Thanks for adding me to your group. To get started, subscribe to a DAO using /subscribe in this group.',
+      Markup.inlineKeyboard([Markup.button.callback('Subscribe', 'subscribe')]),
     );
+  } catch (err) {
+    console.log('An error occured when executing the start command', err);
   }
 });
 
 bot.command('subscribe', async (ctx) => {
-  // subscribe is triggered from a group chat but confirmed in a private chat
-  const { chat } = ctx.message;
+  subscribe(ctx.message.chat, ctx, ctx.message.from.id);
+});
 
-  if (chat.type === 'private') {
-    ctx.sendMessage('Use the subscribe command in the group chat you want to subscribe to.');
+bot.action('subscribe', async (ctx) => {
+  const chat = ctx.callbackQuery?.message?.chat;
+
+  if (!chat) {
     return;
   }
 
-  const admins = await ctx.getChatAdministrators();
-  const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
-
-  if (isAdmin) {
-    console.log('button url', `${appConfig.subscribeUrl}&groupId=${chat.id}`);
-
-    ctx.telegram.sendMessage(
-      ctx.from.id,
-      `Subscribe your group, *${chat.title}*, to a DAO to receive notifications about proposals:`,
-      {
-        parse_mode: 'Markdown',
-        reply_markup: Markup.keyboard([
-          Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${chat.id}`),
-        ]).resize().reply_markup,
-      },
-    );
-  } else {
-    ctx.sendMessage('You must be an admin to use this command.');
-  }
+  subscribe(chat, ctx, ctx.callbackQuery?.from.id);
 });
 
 bot.command('list', async (ctx) => {
@@ -135,7 +105,7 @@ bot.command('unsubscribe', async (ctx) => {
   }
 });
 
-bot.action(/^rm:/g, async (ctx: Context) => {
+bot.action(/^rm:/g, async (ctx) => {
   // Handle button action for removing DAO subscriptions
   try {
     if (!ctx.callbackQuery) {
@@ -224,9 +194,13 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
   const messages = await getDaoReportMessages(subscriptions);
 
   messages.forEach(({ groupId, message }) => {
-    bot.telegram.sendMessage(groupId, message, {
-      parse_mode: 'Markdown',
-    });
+    try {
+      bot.telegram.sendMessage(groupId, message, {
+        parse_mode: 'Markdown',
+      });
+    } catch (err) {
+      console.log('An error occured when sending daily report', err);
+    }
   });
 });
 

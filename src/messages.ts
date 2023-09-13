@@ -1,6 +1,7 @@
 import { appConfig } from './config';
 import * as api from './api';
 import { Subscription } from './types';
+import { Markup } from 'telegraf';
 
 type ReportMessage = {
   groupId: number;
@@ -59,12 +60,16 @@ export async function getDaoReportMessages(
             ? activeProposals
                 .map(
                   (p) =>
-                    `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
+                    `*[${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
                       p.address
-                    }): ✅ Yes ${p.yes || 0}, ❌ No ${p.no || 0}, 🤐 Abstain ${p.abstain || 0}`,
+                    })*\n\`\`\`
+                    ✅ Yes ${p.yes || 0}
+                    ❌ No ${p.no || 0}
+                    🤐 Abstain ${p.abstain || 0}
+                    \`\`\``,
                 )
                 .join('\n')
-            : '_No Active proposals'
+            : '_No Active proposals_'
         }\n\nPending proposals:\n${
           pendingProposals.length > 0
             ? pendingProposals
@@ -83,3 +88,14 @@ export async function getDaoReportMessages(
 
   return messages;
 }
+
+export const SubscribeMessages = {
+  private: 'Use the subscribe command in the group chat you want to subscribe to.',
+  notAdmin: 'You must be an admin to use this command.',
+  success: (chatTitle: string) =>
+    `Tap on the Subscribe button to receive notfications of a DAO for your group, *${chatTitle}*.`,
+  buttonReplyMarkup: (groupId: number) =>
+    Markup.keyboard([
+      Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${groupId}`),
+    ]).resize().reply_markup,
+};
