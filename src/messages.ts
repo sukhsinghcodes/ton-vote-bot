@@ -36,6 +36,10 @@ export async function getDaoReportMessages(
       proposals.forEach((proposal) => {
         const nowUnixInSeconds = Math.floor(Date.now() / 1000);
 
+        if (nowUnixInSeconds > proposal.proposalEndTime) {
+          return;
+        }
+
         if (nowUnixInSeconds < proposal.proposalStartTime) {
           pendingProposals.push(proposal);
           return;
