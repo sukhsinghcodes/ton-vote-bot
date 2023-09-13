@@ -9,7 +9,7 @@ import { getDaoReportMessages } from './messages';
 import * as api from './api';
 import { subscribe } from './commands';
 
-const bot = new Telegraf<Context<Update>>(process.env.BOT_TOKEN as string);
+const bot = new Telegraf<Context<Update>>(appConfig.apiToken);
 const db = new Database();
 
 bot.start(async (ctx) => {
