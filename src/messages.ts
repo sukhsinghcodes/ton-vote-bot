@@ -60,12 +60,12 @@ export async function getDaoReportMessages(
             ? activeProposals
                 .map(
                   (p) =>
-                    `*[${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
+                    `[${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
                       p.address
-                    })*\n\`\`\`
-                    ✅ Yes ${p.yes || 0}
-                    ❌ No ${p.no || 0}
-                    🤐 Abstain ${p.abstain || 0}
+                    })\n\`\`\`
+✅ Yes ${p.yes || 0}
+❌ No ${p.no || 0}
+🤐 Abstain ${p.abstain || 0}
                     \`\`\``,
                 )
                 .join('\n')
