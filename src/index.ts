@@ -228,8 +228,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         .filter((p) => p.status === 'fulfilled')
         .map((p) => (p as PromiseFulfilledResult<api.ProposalMetadata>).value);
 
-      console.log('got proposals', proposals.length);
-
       for (const p of proposals) {
         const nowUnixInSeconds = Date.now();
         const startTime = p.proposalStartTime * 1000;
