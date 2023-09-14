@@ -249,7 +249,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             p.description
           }\n\nStarts on: ${new Date(
             p.proposalStartTime * 1000,
-          ).toLocaleString()}\nEnds on:  ${new Date(p.proposalEndTime * 1000).toLocaleString()}`,
+          ).toLocaleString()}\nEnds on: ${new Date(p.proposalEndTime * 1000).toLocaleString()}`,
           {
             reply_markup: Markup.inlineKeyboard([
               Markup.button.url(
@@ -331,4 +331,6 @@ console.log('TON vote Bot started...');
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-// db.clearProposals();
+if (process.env.CLEAR_PROPOSALS) {
+  db.clearProposals();
+}
