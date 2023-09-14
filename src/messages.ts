@@ -55,7 +55,7 @@ export async function getDaoReportMessages(
 
       messages.push({
         groupId: subscription.groupId,
-        message: `Daily report for *${dao.name}*\n\nActive proposals:\n${
+        message: `Daily report for *${dao.name}*\n\nActive proposals:\n\n${
           activeProposals.length > 0
             ? activeProposals
                 .map(
@@ -63,12 +63,12 @@ export async function getDaoReportMessages(
                     `[${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
                       p.address
                     })\n\`\`\`
-✅ Yes ${p.yes || 0}
-❌ No ${p.no || 0}
-🤐 Abstain ${p.abstain || 0}
+✅ Yes      ${p.yes || 0}
+❌ No       ${p.no || 0}
+🤐 Abstain  ${p.abstain || 0}
                     \`\`\``,
                 )
-                .join('\n')
+                .join('\n\n')
             : '_No Active proposals_'
         }\n\nPending proposals:\n${
           pendingProposals.length > 0
