@@ -228,85 +228,90 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         .filter((p) => p.status === 'fulfilled')
         .map((p) => (p as PromiseFulfilledResult<api.ProposalMetadata>).value);
 
-      proposals.forEach(async (p) => {
-        const nowUnixInSeconds = Math.floor(Date.now() / 1000);
+      console.log('got proposals', proposals.length);
 
-        if (nowUnixInSeconds > p.proposalStartTime) {
-          return;
-        }
+      for (const p of proposals) {
+        const nowUnixInSeconds = Date.now();
+        const startTime = p.proposalStartTime * 1000;
+        const endTime = p.proposalEndTime * 1000;
 
         // Check if proposal already exists
         const proposal = await db.containsReadProposal(p.address);
         if (proposal) {
-          return;
+          continue;
+        }
+
+        if (nowUnixInSeconds < startTime) {
+          bot.telegram.sendMessage(
+            subscription.groupId,
+            `New proposal for *${dao.name}*\n\n*${p.title}*\n${
+              p.description
+            }\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
+              endTime,
+            ).toLocaleString()}`,
+            {
+              reply_markup: Markup.inlineKeyboard([
+                Markup.button.url(
+                  'View propsal',
+                  `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                ),
+              ]).reply_markup,
+              parse_mode: 'Markdown',
+            },
+          );
+
+          // set cron job for proposal start
+          new CronJob(
+            new Date(startTime),
+            async () => {
+              bot.telegram.sendMessage(
+                subscription.groupId,
+                `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${p.description}`,
+                {
+                  reply_markup: Markup.inlineKeyboard([
+                    Markup.button.url(
+                      'Vote now',
+                      `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                    ),
+                  ]).reply_markup,
+                  parse_mode: 'Markdown',
+                },
+              );
+            },
+            null,
+            true,
+          );
+        }
+
+        if (nowUnixInSeconds < endTime) {
+          // set cron job for proposal end
+          new CronJob(
+            new Date(endTime),
+            async () => {
+              bot.telegram.sendMessage(
+                subscription.groupId,
+                `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${
+                  p.description
+                }\n\n*Results*\nYes: ${p.yes || 0}\nNo: ${p.no || 0}\nAbstain: ${p.abstain || 0}`,
+                {
+                  reply_markup: Markup.inlineKeyboard([
+                    Markup.button.url(
+                      'View results',
+                      `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                    ),
+                  ]).reply_markup,
+                  parse_mode: 'Markdown',
+                },
+              );
+            },
+            null,
+            true,
+          );
         }
 
         await db.insertReadProposal(p.address);
-
-        bot.telegram.sendMessage(
-          subscription.groupId,
-          `New proposal for *${dao.name}*\n\n*${p.title}*\n${
-            p.description
-          }\n\nStarts on: ${new Date(
-            p.proposalStartTime * 1000,
-          ).toLocaleString()}\nEnds on: ${new Date(p.proposalEndTime * 1000).toLocaleString()}`,
-          {
-            reply_markup: Markup.inlineKeyboard([
-              Markup.button.url(
-                'View propsal',
-                `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
-              ),
-            ]).reply_markup,
-            parse_mode: 'Markdown',
-          },
-        );
-
-        // set cron job for proposal start
-        new CronJob(
-          new Date(p.proposalStartTime * 1000),
-          async () => {
-            bot.telegram.sendMessage(
-              subscription.groupId,
-              `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${p.description}`,
-              {
-                reply_markup: Markup.inlineKeyboard([
-                  Markup.button.url(
-                    'Vote now',
-                    `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
-                  ),
-                ]).reply_markup,
-                parse_mode: 'Markdown',
-              },
-            );
-          },
-          null,
-          true,
-        );
-
-        // set cron job for proposal end
-        new CronJob(
-          new Date(p.proposalEndTime * 1000),
-          async () => {
-            bot.telegram.sendMessage(
-              subscription.groupId,
-              `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${
-                p.description
-              }\n\n*Results*\nYes: ${p.yes || 0}\nNo: ${p.no || 0}\nAbstain: ${p.abstain || 0}`,
-              {
-                reply_markup: Markup.inlineKeyboard([
-                  Markup.button.url(
-                    'View results',
-                    `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
-                  ),
-                ]).reply_markup,
-                parse_mode: 'Markdown',
-              },
-            );
-          },
-          null,
-          true,
-        );
-      });
+        console.log(`added proposal(${p.address}) to read proposals`);
+      }
     }
   } catch (e) {
     console.log(e);
@@ -331,6 +336,10 @@ console.log('TON vote Bot started...');
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-if (process.env.CLEAR_PROPOSALS) {
-  db.clearProposals();
+async function clearProposals() {
+  if (process.env.CLEAR_PROPOSALS) {
+    await db.clearProposals();
+    console.log('Cleared proposals!');
+  }
 }
+clearProposals();
