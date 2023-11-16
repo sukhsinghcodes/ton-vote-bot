@@ -205,7 +205,10 @@ bot.on('my_chat_member', async (ctx) => {
         },
       );
     } else {
-      ctx.sendMessage(SubscribeMessages.notAdmin(ctx.chat.title));
+      ctx.telegram.sendMessage(
+        ctx.update.my_chat_member.from.id,
+        SubscribeMessages.notAdmin(ctx.chat.title),
+      );
     }
   } catch (err) {
     console.log('Error: On chat member change - ', err);

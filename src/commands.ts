@@ -17,7 +17,7 @@ export async function subscribe(chat: Chat, ctx: Context, fromId: number) {
         reply_markup: SubscribeMessages.buttonReplyMarkup(chat.id),
       });
     } else {
-      ctx.sendMessage(SubscribeMessages.notAdmin(chat.title));
+      ctx.telegram.sendMessage(fromId, SubscribeMessages.notAdmin(chat.title));
     }
   } catch (err) {
     console.log(err);
