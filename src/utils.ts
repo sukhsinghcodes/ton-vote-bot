@@ -1,12 +1,12 @@
 import { appConfig } from './config';
 
-export function convertArrayTo2dArray<T>(array: T[], columns: number): T[][] {
-  const rows = Math.ceil(array.length / columns);
+export function convertArrayToTable<T>(items: T[], columns: number): T[][] {
+  const rows = Math.ceil(items.length / columns);
 
   const resultArray: T[][] = [];
 
   for (let i = 0; i < rows; i++) {
-    const row = array.slice(i * columns, (i + 1) * columns);
+    const row = items.slice(i * columns, (i + 1) * columns);
     resultArray.push(row);
   }
   return resultArray;

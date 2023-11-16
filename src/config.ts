@@ -10,8 +10,13 @@ export const appConfig = {
   tonVoteQueryParams,
   twaUrl: `${tonVoteUrl}${tonVoteQueryParams}`,
   subscribeUrl: `${tonVoteUrl}${tonVoteQueryParams}&subscribe=1`,
-  getGroupLaunchWebAppUrl: (botUsername: string, queryData = ''): string => {
-    return `https://t.me/${botUsername}/${process.env.WEB_APP_USERNAME}?startapp=${queryData}}`;
-  },
+  getGroupLaunchWebAppUrl: (botUsername: string, queryParam = '') =>
+    `https://t.me/${botUsername}/${process.env.WEB_APP_USERNAME}?startapp=${queryParam}`,
   apiToken: process.env.BOT_TOKEN || '',
+};
+
+export const directLinkKeys = {
+  dao: '_dao_',
+  proposal: '_proposal_',
+  separator: '-_-',
 };

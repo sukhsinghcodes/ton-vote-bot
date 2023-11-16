@@ -2,8 +2,8 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
-import { appConfig } from './config';
-import { convertArrayTo2dArray } from './utils';
+import { appConfig, directLinkKeys } from './config';
+import { convertArrayToTable } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
 import * as api from './api';
@@ -54,14 +54,21 @@ bot.command('list', async (ctx) => {
       return;
     }
 
-    const list = subscriptions
-      .map((item) => `- [${item.daoName}](${appConfig.tonVoteUrl}/${item.daoAddress})`)
-      .join('\n');
+    const buttons = subscriptions.map((item) =>
+      Markup.button.url(
+        item.daoName,
 
-    await ctx.reply(`This group is subscribed to the following DAOs:\n${list}`, {
-      reply_markup: Markup.inlineKeyboard([
-        Markup.button.url('Open TON Vote', appConfig.getGroupLaunchWebAppUrl(ctx.botInfo.username)),
-      ]).reply_markup,
+        appConfig.getGroupLaunchWebAppUrl(
+          ctx.botInfo.username,
+          `${directLinkKeys.dao}${item.daoAddress}`,
+        ),
+      ),
+    );
+
+    const buttonsTable = convertArrayToTable(buttons, 2);
+
+    await ctx.reply(`This group is subscribed to the following DAOs:`, {
+      reply_markup: Markup.inlineKeyboard(buttonsTable).reply_markup,
       parse_mode: 'Markdown',
     });
   } catch (err) {
@@ -88,7 +95,7 @@ bot.command('unsubscribe', async (ctx) => {
       Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
     );
 
-    const buttonsTable = convertArrayTo2dArray(buttons, 2);
+    const buttonsTable = convertArrayToTable(buttons, 2);
 
     await ctx.reply(
       'Click on the DAO from the list below to unsubscribe:',
@@ -256,7 +263,10 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
               reply_markup: Markup.inlineKeyboard([
                 Markup.button.url(
                   'View propsal',
-                  `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                  appConfig.getGroupLaunchWebAppUrl(
+                    bot.botInfo?.username || '',
+                    `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                  ),
                 ),
               ]).reply_markup,
               parse_mode: 'Markdown',
@@ -274,7 +284,10 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
                       'Vote now',
-                      `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                      appConfig.getGroupLaunchWebAppUrl(
+                        bot.botInfo?.username || '',
+                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                      ),
                     ),
                   ]).reply_markup,
                   parse_mode: 'Markdown',
@@ -300,7 +313,10 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
                       'View results',
-                      `${appConfig.tonVoteUrl}/${daoAddress}/proposal/${p.address}`,
+                      appConfig.getGroupLaunchWebAppUrl(
+                        bot.botInfo?.username || '',
+                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                      ),
                     ),
                   ]).reply_markup,
                   parse_mode: 'Markdown',
