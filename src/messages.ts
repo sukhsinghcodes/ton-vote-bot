@@ -1,4 +1,4 @@
-import { appConfig } from './config';
+import { appConfig, directLinkKeys } from './config';
 import * as api from './api';
 import { Subscription } from './types';
 import { Markup } from 'telegraf';
@@ -55,27 +55,35 @@ export async function getDaoReportMessages(
 
       messages.push({
         groupId: subscription.groupId,
-        message: `Daily report for *${dao.name}*\n\nActive proposals:\n\n${
+        message: `Daily report for [${dao.name}](${appConfig.getGroupLaunchWebAppUrl(
+          'sukhtonvotelocalbot',
+          `${directLinkKeys.dao}${dao.address}`,
+        )})\n\n*Active proposals:*\n${
           activeProposals.length > 0
             ? activeProposals
                 .map(
-                  (p) =>
-                    `[${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${
-                      p.address
-                    })\n\`\`\`
-✅ Yes      ${p.yes || 0}
-❌ No       ${p.no || 0}
-🤐 Abstain  ${p.abstain || 0}
-                    \`\`\``,
+                  (p, index) =>
+                    `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
+                      'sukhtonvotelocalbot',
+                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                    )})
+   ${p.description.concat('...').substring(0, 100)}
+   ✅ Yes      ${p.yes || 0}
+   ❌ No       ${p.no || 0}
+   🤐 Abstain  ${p.abstain || 0}`,
                 )
                 .join('\n\n')
             : '_No Active proposals_'
-        }\n\nPending proposals:\n${
+        }\n\n*Pending proposals:*\n${
           pendingProposals.length > 0
             ? pendingProposals
                 .map(
-                  (p) =>
-                    `- [${p.title}](${appConfig.tonVoteUrl}/${p.daoAddress}/proposal/${p.address})`,
+                  (p, index) =>
+                    `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
+                      'sukhtonvotelocalbot',
+                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                    )})
+   ${p.description.concat('...').substring(0, 100)}`,
                 )
                 .join('\n')
             : '_No Pending proposals_'
