@@ -5,7 +5,7 @@ import { Database } from './db';
 import { appConfig } from './config';
 import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
-import { SubscribeMessages, getDaoReportMessages } from './messages';
+import { getDaoReportMessages } from './messages';
 import * as api from './api';
 import { subscribe } from './commands';
 
@@ -180,10 +180,6 @@ bot.on('message', async (ctx) => {
 });
 
 bot.on('my_chat_member', async (ctx) => {
-  if (ctx.chat.type === 'private') {
-    return;
-  }
-
   if (
     ctx.update.my_chat_member.new_chat_member.user.id === bot.botInfo?.id &&
     ctx.update.my_chat_member.new_chat_member.status !== 'member'
@@ -191,28 +187,7 @@ bot.on('my_chat_member', async (ctx) => {
     return;
   }
 
-  try {
-    const admins = await ctx.getChatAdministrators();
-    const isAdmin = admins.some((admin) => admin.user.id === ctx.update.my_chat_member.from.id);
-
-    if (isAdmin) {
-      ctx.telegram.sendMessage(
-        ctx.update.my_chat_member.from.id,
-        SubscribeMessages.start(ctx.chat.title),
-        {
-          parse_mode: 'Markdown',
-          reply_markup: SubscribeMessages.buttonReplyMarkup(ctx.chat.id),
-        },
-      );
-    } else {
-      ctx.telegram.sendMessage(
-        ctx.update.my_chat_member.from.id,
-        SubscribeMessages.notAdmin(ctx.chat.title),
-      );
-    }
-  } catch (err) {
-    console.log('Error: On chat member change - ', err);
-  }
+  subscribe(ctx.chat, ctx, ctx.update.my_chat_member.from.id);
 });
 
 const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
