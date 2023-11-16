@@ -5,7 +5,7 @@ import { Database } from './db';
 import { appConfig } from './config';
 import { convertArrayTo2dArray } from './utils';
 import { WebAppDataSubscribe } from './types';
-import { getDaoReportMessages } from './messages';
+import { SubscribeMessages, getDaoReportMessages } from './messages';
 import * as api from './api';
 import { subscribe } from './commands';
 
@@ -17,15 +17,9 @@ bot.start(async (ctx) => {
     const { chat } = ctx.message;
 
     if (chat.type === 'private') {
-      ctx.sendMessage('To get started, use /start in a group I have been added to.');
+      ctx.sendMessage('To get started, add me to a group.');
       return;
     }
-
-    // Handle start for group chats
-    ctx.sendMessage(
-      'Thanks for adding me to your group. To get started, subscribe to a DAO using /subscribe in this group.',
-      Markup.inlineKeyboard([Markup.button.callback('Subscribe', 'subscribe')]),
-    );
   } catch (err) {
     console.log('An error occured when executing the start command', err);
   }
@@ -137,7 +131,7 @@ bot.command('report', async (ctx) => {
     const subscriptions = await db.getAllByGroupId(ctx.chat.id);
 
     if (!subscriptions.length) {
-      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
+      await ctx.reply('You have no subscriptions.');
       return;
     }
 
@@ -179,9 +173,42 @@ bot.on('message', async (ctx) => {
       daoName: data.name,
     });
 
-    ctx.reply(`You have subscribed to ${data.name}`);
+    ctx.reply(`You have subscribed to ${data.name} ✅`);
   } catch (err) {
     console.log('An error occured when subscribing', err);
+  }
+});
+
+bot.on('my_chat_member', async (ctx) => {
+  if (ctx.chat.type === 'private') {
+    return;
+  }
+
+  if (
+    ctx.update.my_chat_member.new_chat_member.user.id === bot.botInfo?.id &&
+    ctx.update.my_chat_member.new_chat_member.status !== 'member'
+  ) {
+    return;
+  }
+
+  try {
+    const admins = await ctx.getChatAdministrators();
+    const isAdmin = admins.some((admin) => admin.user.id === ctx.update.my_chat_member.from.id);
+
+    if (isAdmin) {
+      ctx.telegram.sendMessage(
+        ctx.update.my_chat_member.from.id,
+        SubscribeMessages.start(ctx.chat.title),
+        {
+          parse_mode: 'Markdown',
+          reply_markup: SubscribeMessages.buttonReplyMarkup(ctx.chat.id),
+        },
+      );
+    } else {
+      ctx.sendMessage(SubscribeMessages.notAdmin(ctx.chat.title));
+    }
+  } catch (err) {
+    console.log('Error: On chat member change - ', err);
   }
 });
 
@@ -315,14 +342,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
     console.log(e);
   }
 });
-
-bot.telegram.setMyCommands([
-  { command: 'start', description: 'Welcome to TON Vote' },
-  { command: 'list', description: 'List all DAOs you are subscribed to' },
-  { command: 'subscribe', description: 'Subscribe to a DAO' },
-  { command: 'unsubscribe', description: 'Unsubscribe from a DAO' },
-  { command: 'report', description: "Get a report of the DAOs you're subscribed to" },
-]);
 
 // Start the bot and schedulers
 bot.launch();

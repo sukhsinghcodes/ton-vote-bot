@@ -90,12 +90,12 @@ export async function getDaoReportMessages(
 }
 
 export const SubscribeMessages = {
-  private: 'Use the subscribe command in the group chat you want to subscribe to.',
-  notAdmin: 'You must be an admin to use this command.',
-  success: (chatTitle: string) =>
-    `Tap on the Subscribe button to receive notfications of a DAO for your group, *${chatTitle}*.`,
+  notAdmin: (groupTitle: string) =>
+    `You must be an admin of *${groupTitle}* to configure this bot.`,
+  start: (groupTitle: string) =>
+    `Thanks for adding me to *${groupTitle}*! 😊\n\nTap on the 'Select DAO' button below to receive notfications in your group.`,
   buttonReplyMarkup: (groupId: number) =>
     Markup.keyboard([
-      Markup.button.webApp('Subscribe', `${appConfig.subscribeUrl}&groupId=${groupId}`),
+      Markup.button.webApp('Select DAO', `${appConfig.subscribeUrl}&groupId=${groupId}`),
     ]).resize().reply_markup,
 };
