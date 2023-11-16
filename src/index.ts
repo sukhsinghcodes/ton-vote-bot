@@ -98,7 +98,7 @@ bot.command('unsubscribe', async (ctx) => {
     const buttonsTable = convertArrayToTable(buttons, 2);
 
     await ctx.reply(
-      'Click on the DAO from the list below to unsubscribe:',
+      'Select the DAO you want to unsubscribe from:',
       Markup.inlineKeyboard(buttonsTable),
     );
   } catch (err) {
@@ -180,7 +180,7 @@ bot.on('message', async (ctx) => {
       daoName: data.name,
     });
 
-    ctx.reply(`You have subscribed to ${data.name} ✅`);
+    ctx.reply(`You have subscribed to *${data.name}* ✅`);
   } catch (err) {
     console.log('An error occured when subscribing', err);
   }
@@ -308,7 +308,9 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                 subscription.groupId,
                 `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${
                   p.description
-                }\n\n*Results*\nYes: ${p.yes || 0}\nNo: ${p.no || 0}\nAbstain: ${p.abstain || 0}`,
+                }\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
+                  p.abstain || 0
+                }`,
                 {
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
