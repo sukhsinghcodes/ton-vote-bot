@@ -151,7 +151,8 @@ bot.command('report', async (ctx) => {
     }
 
     messages.forEach(({ message }) => {
-      ctx.sendMessage(message, {
+      ctx.sendAnimation('https://dev.ton.vote/ton-vote-message.gif', {
+        caption: message,
         parse_mode: 'Markdown',
       });
     });
@@ -208,7 +209,8 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
 
   messages.forEach(({ groupId, message }) => {
     try {
-      bot.telegram.sendMessage(groupId, message, {
+      bot.telegram.sendAnimation(groupId, 'https://dev.ton.vote/ton-vote-message.gif', {
+        caption: message,
         parse_mode: 'Markdown',
       });
     } catch (err) {
@@ -253,14 +255,16 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         }
 
         if (nowUnixInSeconds < startTime) {
-          bot.telegram.sendMessage(
+          bot.telegram.sendAnimation(
             subscription.groupId,
-            `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
-              p.description,
-            ).substring(0, 100)}...\n\nStarts on: ${new Date(
-              startTime,
-            ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
+            'https://dev.ton.vote/ton-vote-message.gif',
             {
+              caption: `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
+                p.description,
+              ).substring(0, 100)}...\n\nStarts on: ${new Date(
+                startTime,
+              ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
+
               reply_markup: Markup.inlineKeyboard([
                 Markup.button.url(
                   'View propsal',
@@ -278,12 +282,14 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(startTime),
             async () => {
-              bot.telegram.sendMessage(
+              bot.telegram.sendAnimation(
                 subscription.groupId,
-                `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
-                  p.description,
-                ).substring(0, 100)}...`,
+                'https://dev.ton.vote/ton-vote-message.gif',
                 {
+                  caption: `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
+                    p.description,
+                  ).substring(0, 100)}...`,
+
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
                       'Vote now',
@@ -307,16 +313,17 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(endTime),
             async () => {
-              bot.telegram.sendMessage(
+              bot.telegram.sendAnimation(
                 subscription.groupId,
-                `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
-                  p.description,
-                )
-                  .substring(0, 100)
-                  .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
-                  p.no || 0
-                }\n🤐 Abstain: ${p.abstain || 0}`,
+                'https://dev.ton.vote/ton-vote-message.gif',
                 {
+                  caption: `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
+                    p.description,
+                  )
+                    .substring(0, 100)
+                    .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
+                    p.no || 0
+                  }\n🤐 Abstain: ${p.abstain || 0}`,
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
                       'View results',
