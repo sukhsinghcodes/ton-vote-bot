@@ -2,6 +2,7 @@ import { appConfig, directLinkKeys } from './config';
 import * as api from './api';
 import { Subscription } from './types';
 import { Markup } from 'telegraf';
+import sanitizeHtml from 'sanitize-html';
 
 type ReportMessage = {
   groupId: number;
@@ -67,7 +68,7 @@ export async function getDaoReportMessages(
                       'sukhtonvotelocalbot',
                       `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     )})
-   ${p.description.concat('...').substring(0, 100)}
+   ${sanitizeHtml(p.description).substring(0, 100).trim()}...
    ✅ Yes      ${p.yes || 0}
    ❌ No       ${p.no || 0}
    🤐 Abstain  ${p.abstain || 0}`,
@@ -83,9 +84,9 @@ export async function getDaoReportMessages(
                       'sukhtonvotelocalbot',
                       `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     )})
-   ${p.description.concat('...').substring(0, 100)}`,
+   ${sanitizeHtml(p.description).substring(0, 100).trim()}...`,
                 )
-                .join('\n')
+                .join('\n\n')
             : '_No Pending proposals_'
         }`,
       });

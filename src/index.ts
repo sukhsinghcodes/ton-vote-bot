@@ -8,6 +8,7 @@ import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
 import * as api from './api';
 import { subscribe } from './commands';
+import sanitizeHtml from 'sanitize-html';
 
 const bot = new Telegraf<Context<Update>>(appConfig.apiToken);
 const db = new Database();
@@ -254,11 +255,11 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         if (nowUnixInSeconds < startTime) {
           bot.telegram.sendMessage(
             subscription.groupId,
-            `New proposal for *${dao.name}*\n\n*${p.title}*\n${
-              p.description
-            }\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
-              endTime,
-            ).toLocaleString()}`,
+            `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
+              p.description,
+            ).substring(0, 100)}...\n\nStarts on: ${new Date(
+              startTime,
+            ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
             {
               reply_markup: Markup.inlineKeyboard([
                 Markup.button.url(
@@ -279,7 +280,9 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               bot.telegram.sendMessage(
                 subscription.groupId,
-                `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${p.description}`,
+                `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
+                  p.description,
+                ).substring(0, 100)}...`,
                 {
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
@@ -306,11 +309,13 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               bot.telegram.sendMessage(
                 subscription.groupId,
-                `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${
-                  p.description
-                }\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
-                  p.abstain || 0
-                }`,
+                `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
+                  p.description,
+                )
+                  .substring(0, 100)
+                  .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
+                  p.no || 0
+                }\n🤐 Abstain: ${p.abstain || 0}`,
                 {
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
