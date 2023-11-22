@@ -67,7 +67,10 @@ export async function getDaoReportMessages(
         currentIndex = messages.length - 1;
       }
 
-      messages[currentIndex].message += `*${dao.name}*\n----------------------\n${
+      messages[currentIndex].message += `[${dao.name}](${appConfig.getGroupLaunchWebAppUrl(
+        'sukhtonvotelocalbot',
+        `${directLinkKeys.dao}${dao.address}`,
+      )})\n${
         activeProposals.length > 0
           ? `_Active proposals:_\n${activeProposals
               .map(
