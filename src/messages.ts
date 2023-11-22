@@ -11,6 +11,7 @@ type ReportMessage = {
 
 export async function getDaoReportMessages(
   subscriptions: Subscription[],
+  botUsername: string,
 ): Promise<ReportMessage[]> {
   const messages: ReportMessage[] = [];
 
@@ -57,7 +58,7 @@ export async function getDaoReportMessages(
       messages.push({
         groupId: subscription.groupId,
         message: `Daily report for [${dao.name}](${appConfig.getGroupLaunchWebAppUrl(
-          'sukhtonvotelocalbot',
+          botUsername,
           `${directLinkKeys.dao}${dao.address}`,
         )})\n\n*Active proposals:*\n${
           activeProposals.length > 0
@@ -65,7 +66,7 @@ export async function getDaoReportMessages(
                 .map(
                   (p, index) =>
                     `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
-                      'sukhtonvotelocalbot',
+                      botUsername,
                       `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     )})
    ${sanitizeHtml(p.description).substring(0, 100).trim()}...
@@ -81,7 +82,7 @@ export async function getDaoReportMessages(
                 .map(
                   (p, index) =>
                     `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
-                      'sukhtonvotelocalbot',
+                      botUsername,
                       `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     )})
    ${sanitizeHtml(p.description).substring(0, 100).trim()}...`,

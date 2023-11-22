@@ -143,7 +143,7 @@ bot.command('report', async (ctx) => {
       return;
     }
 
-    const messages = await getDaoReportMessages(subscriptions);
+    const messages = await getDaoReportMessages(subscriptions, bot.botInfo?.username || '');
 
     if (!messages.length) {
       await ctx.reply('There are no active or pending proposals for your subscriptions.');
@@ -205,7 +205,7 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
 
   const subscriptions = await db.getAll();
 
-  const messages = await getDaoReportMessages(subscriptions);
+  const messages = await getDaoReportMessages(subscriptions, bot.botInfo?.username || '');
 
   messages.forEach(({ groupId, message }) => {
     try {
