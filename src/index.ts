@@ -185,7 +185,7 @@ bot.on('message', async (ctx) => {
       daoName: data.name,
     });
 
-    ctx.reply(`You have subscribed to *${data.name}* ✅`);
+    ctx.reply(`You have subscribed to *${data.name}* ✅`, { parse_mode: 'MarkdownV2' });
   } catch (err) {
     console.log('An error occured when subscribing', err);
   }
