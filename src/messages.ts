@@ -3,6 +3,7 @@ import * as api from './api';
 import { Subscription } from './types';
 import { Markup } from 'telegraf';
 import sanitizeHtml from 'sanitize-html';
+import { truncate } from './utils';
 
 type ReportMessage = {
   groupId: number;
@@ -17,7 +18,7 @@ export async function getDaoReportMessages(
 
   try {
     for (const subscription of subscriptions) {
-      const { daoAddress } = subscription;
+      const { daoAddress, groupId } = subscription;
 
       const dao = await api.dao(daoAddress);
 
@@ -51,46 +52,75 @@ export async function getDaoReportMessages(
         activeProposals.push(proposal);
       });
 
+      // activeProposals.push({
+      //   address: '0:0',
+      //   title: 'Test proposal',
+      //   description: 'Test description',
+      //   proposalStartTime: 0,
+      //   proposalEndTime: 0,
+      //   yes: 0,
+      //   no: 0,
+      //   abstain: 0,
+      //   daoAddress: '0:0',
+      // });
+
+      pendingProposals.push({
+        address: '0:0',
+        title: 'Test proposal',
+        description: 'Test description',
+        proposalStartTime: 0,
+        proposalEndTime: 0,
+        yes: 0,
+        no: 0,
+        abstain: 0,
+        daoAddress: '0:0',
+      });
+
       if (activeProposals.length === 0 && pendingProposals.length === 0) {
         continue;
       }
 
-      messages.push({
-        groupId: subscription.groupId,
-        message: `Daily report for [${dao.name}](${appConfig.getGroupLaunchWebAppUrl(
-          botUsername,
-          `${directLinkKeys.dao}${dao.address}`,
-        )})\n\n*Active proposals:*\n${
-          activeProposals.length > 0
-            ? activeProposals
-                .map(
-                  (p, index) =>
-                    `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
-                      botUsername,
-                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
-                    )})
-   ${sanitizeHtml(p.description).substring(0, 100).trim()}...
+      let currentIndex = messages.findIndex((m) => m.groupId === groupId);
+
+      if (currentIndex === -1) {
+        messages.push({
+          groupId,
+          message: '🚨 *DAILY REPORT* 🚨\n\n',
+        });
+
+        currentIndex = messages.length - 1;
+      }
+
+      messages[currentIndex].message += `*${dao.name}*\n----------------------\n${
+        activeProposals.length > 0
+          ? `_Active proposals:_\n${activeProposals
+              .map(
+                (p, index) =>
+                  `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
+                    botUsername,
+                    `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                  )})
+   ${truncate(sanitizeHtml(p.description), 200)}
    ✅ Yes      ${p.yes || 0}
    ❌ No       ${p.no || 0}
    🤐 Abstain  ${p.abstain || 0}`,
-                )
-                .join('\n\n')
-            : '_No Active proposals_'
-        }\n\n*Pending proposals:*\n${
-          pendingProposals.length > 0
-            ? pendingProposals
-                .map(
-                  (p, index) =>
-                    `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
-                      botUsername,
-                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
-                    )})
-   ${sanitizeHtml(p.description).substring(0, 100).trim()}...`,
-                )
-                .join('\n\n')
-            : '_No Pending proposals_'
-        }`,
-      });
+              )
+              .join('\n\n')}\n\n`
+          : ''
+      }${
+        pendingProposals.length > 0
+          ? `_Pending proposals:_\n${pendingProposals
+              .map(
+                (p, index) =>
+                  `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
+                    botUsername,
+                    `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                  )}) 
+   ${truncate(sanitizeHtml(p.description), 200)}`,
+              )
+              .join('\n\n')}`
+          : ''
+      }\n\n`;
     }
   } catch (e) {
     console.log(e);

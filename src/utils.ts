@@ -29,3 +29,7 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
     {} as Record<string, T[]>,
   );
 }
+
+export function truncate(str: string, n: number) {
+  return str.length > n ? str.slice(0, n - 1).trim() + '&hellip;' : str.trim();
+}

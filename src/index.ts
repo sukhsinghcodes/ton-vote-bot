@@ -150,11 +150,14 @@ bot.command('report', async (ctx) => {
       return;
     }
 
+    let messageToSend = '';
     messages.forEach(({ message }) => {
-      ctx.sendAnimation('https://dev.ton.vote/ton-vote-message.gif', {
-        caption: message,
-        parse_mode: 'Markdown',
-      });
+      messageToSend += message;
+    });
+
+    ctx.sendAnimation('https://dev.ton.vote/ton-vote-message.gif', {
+      caption: messageToSend,
+      parse_mode: 'Markdown',
     });
   } catch (err) {
     console.log('An error occured when executing the report command', err);
