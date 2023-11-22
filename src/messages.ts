@@ -52,30 +52,6 @@ export async function getDaoReportMessages(
         activeProposals.push(proposal);
       });
 
-      // activeProposals.push({
-      //   address: '0:0',
-      //   title: 'Test proposal',
-      //   description: 'Test description',
-      //   proposalStartTime: 0,
-      //   proposalEndTime: 0,
-      //   yes: 0,
-      //   no: 0,
-      //   abstain: 0,
-      //   daoAddress: '0:0',
-      // });
-
-      pendingProposals.push({
-        address: '0:0',
-        title: 'Test proposal',
-        description: 'Test description',
-        proposalStartTime: 0,
-        proposalEndTime: 0,
-        yes: 0,
-        no: 0,
-        abstain: 0,
-        daoAddress: '0:0',
-      });
-
       if (activeProposals.length === 0 && pendingProposals.length === 0) {
         continue;
       }
