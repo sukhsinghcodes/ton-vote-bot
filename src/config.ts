@@ -22,3 +22,4 @@ export const directLinkKeys = {
 };
 
 export const messageImageUrl = 'https://dev.ton.vote/ton-vote-message-short.gif';
+export const messageVideoUrl = 'https://dev.ton.vote/ton-vote.mp4';

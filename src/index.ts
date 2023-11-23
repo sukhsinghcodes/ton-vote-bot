@@ -2,7 +2,7 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
-import { appConfig, directLinkKeys, messageImageUrl } from './config';
+import { appConfig, directLinkKeys, messageVideoUrl } from './config';
 import { convertArrayToTable } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
@@ -155,7 +155,7 @@ bot.command('report', async (ctx) => {
       messageToSend += message;
     });
 
-    ctx.sendAnimation(messageImageUrl, {
+    ctx.sendAnimation(messageVideoUrl, {
       caption: messageToSend,
       parse_mode: 'Markdown',
     });
@@ -212,7 +212,7 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
 
   messages.forEach(({ groupId, message }) => {
     try {
-      bot.telegram.sendAnimation(groupId, messageImageUrl, {
+      bot.telegram.sendVideo(groupId, messageVideoUrl, {
         caption: message,
         parse_mode: 'Markdown',
       });
@@ -258,7 +258,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         }
 
         if (nowUnixInSeconds < startTime) {
-          bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+          bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
             caption: `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
               p.description,
             ).substring(0, 100)}...\n\nStarts on: ${new Date(
@@ -281,7 +281,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(startTime),
             async () => {
-              bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+              bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
                 caption: `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
                   p.description,
                 ).substring(0, 100)}...`,
@@ -308,7 +308,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(endTime),
             async () => {
-              bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+              bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
                 caption: `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
                   p.description,
                 )
