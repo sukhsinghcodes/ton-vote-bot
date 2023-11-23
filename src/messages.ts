@@ -61,7 +61,7 @@ export async function getDaoReportMessages(
       if (currentIndex === -1) {
         messages.push({
           groupId,
-          message: '🚨 *DAILY REPORT* 🚨\n\n',
+          message: '📊 *DAILY REPORT* 📊\n\n',
         });
 
         currentIndex = messages.length - 1;
