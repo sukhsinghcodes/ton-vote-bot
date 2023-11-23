@@ -2,7 +2,7 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
-import { appConfig, directLinkKeys } from './config';
+import { appConfig, directLinkKeys, messageImageUrl } from './config';
 import { convertArrayToTable } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
@@ -155,7 +155,7 @@ bot.command('report', async (ctx) => {
       messageToSend += message;
     });
 
-    ctx.sendAnimation('https://dev.ton.vote/ton-vote-message.gif', {
+    ctx.sendAnimation(messageImageUrl, {
       caption: messageToSend,
       parse_mode: 'Markdown',
     });
@@ -212,7 +212,7 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
 
   messages.forEach(({ groupId, message }) => {
     try {
-      bot.telegram.sendAnimation(groupId, 'https://dev.ton.vote/ton-vote-message.gif', {
+      bot.telegram.sendAnimation(groupId, messageImageUrl, {
         caption: message,
         parse_mode: 'Markdown',
       });
@@ -258,53 +258,45 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         }
 
         if (nowUnixInSeconds < startTime) {
-          bot.telegram.sendAnimation(
-            subscription.groupId,
-            'https://dev.ton.vote/ton-vote-message.gif',
-            {
-              caption: `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
-                p.description,
-              ).substring(0, 100)}...\n\nStarts on: ${new Date(
-                startTime,
-              ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
+          bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+            caption: `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
+              p.description,
+            ).substring(0, 100)}...\n\nStarts on: ${new Date(
+              startTime,
+            ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
 
-              reply_markup: Markup.inlineKeyboard([
-                Markup.button.url(
-                  'View propsal',
-                  appConfig.getGroupLaunchWebAppUrl(
-                    bot.botInfo?.username || '',
-                    `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
-                  ),
+            reply_markup: Markup.inlineKeyboard([
+              Markup.button.url(
+                'View propsal',
+                appConfig.getGroupLaunchWebAppUrl(
+                  bot.botInfo?.username || '',
+                  `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                 ),
-              ]).reply_markup,
-              parse_mode: 'Markdown',
-            },
-          );
+              ),
+            ]).reply_markup,
+            parse_mode: 'Markdown',
+          });
 
           // set cron job for proposal start
           new CronJob(
             new Date(startTime),
             async () => {
-              bot.telegram.sendAnimation(
-                subscription.groupId,
-                'https://dev.ton.vote/ton-vote-message.gif',
-                {
-                  caption: `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
-                    p.description,
-                  ).substring(0, 100)}...`,
+              bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+                caption: `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
+                  p.description,
+                ).substring(0, 100)}...`,
 
-                  reply_markup: Markup.inlineKeyboard([
-                    Markup.button.url(
-                      'Vote now',
-                      appConfig.getGroupLaunchWebAppUrl(
-                        bot.botInfo?.username || '',
-                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
-                      ),
+                reply_markup: Markup.inlineKeyboard([
+                  Markup.button.url(
+                    'Vote now',
+                    appConfig.getGroupLaunchWebAppUrl(
+                      bot.botInfo?.username || '',
+                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     ),
-                  ]).reply_markup,
-                  parse_mode: 'Markdown',
-                },
-              );
+                  ),
+                ]).reply_markup,
+                parse_mode: 'Markdown',
+              });
             },
             null,
             true,
@@ -316,29 +308,25 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(endTime),
             async () => {
-              bot.telegram.sendAnimation(
-                subscription.groupId,
-                'https://dev.ton.vote/ton-vote-message.gif',
-                {
-                  caption: `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
-                    p.description,
-                  )
-                    .substring(0, 100)
-                    .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
-                    p.no || 0
-                  }\n🤐 Abstain: ${p.abstain || 0}`,
-                  reply_markup: Markup.inlineKeyboard([
-                    Markup.button.url(
-                      'View results',
-                      appConfig.getGroupLaunchWebAppUrl(
-                        bot.botInfo?.username || '',
-                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
-                      ),
+              bot.telegram.sendAnimation(subscription.groupId, messageImageUrl, {
+                caption: `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
+                  p.description,
+                )
+                  .substring(0, 100)
+                  .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
+                  p.no || 0
+                }\n🤐 Abstain: ${p.abstain || 0}`,
+                reply_markup: Markup.inlineKeyboard([
+                  Markup.button.url(
+                    'View results',
+                    appConfig.getGroupLaunchWebAppUrl(
+                      bot.botInfo?.username || '',
+                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                     ),
-                  ]).reply_markup,
-                  parse_mode: 'Markdown',
-                },
-              );
+                  ),
+                ]).reply_markup,
+                parse_mode: 'Markdown',
+              });
             },
             null,
             true,

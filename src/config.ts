@@ -20,3 +20,5 @@ export const directLinkKeys = {
   proposal: '_proposal_',
   separator: '-_-',
 };
+
+export const messageImageUrl = 'https://dev.ton.vote/ton-vote-message-short.gif';
