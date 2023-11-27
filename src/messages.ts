@@ -79,7 +79,7 @@ export async function getDaoReportMessages(
                     botUsername,
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                   )})
-   ${truncate(sanitizeHtml(p.description), 200)}
+   ${truncate(sanitizeHtml(p.description), 100)}
    ✅ Yes      ${p.yes || 0}
    ❌ No       ${p.no || 0}
    🤐 Abstain  ${p.abstain || 0}`,
@@ -95,7 +95,7 @@ export async function getDaoReportMessages(
                     botUsername,
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                   )}) 
-   ${truncate(sanitizeHtml(p.description), 200)}`,
+   ${truncate(sanitizeHtml(p.description), 100)}`,
               )
               .join('\n\n')}`
           : ''

@@ -261,7 +261,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
             caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
               sanitizeHtml(p.description),
-              200,
+              100,
             )}\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
               endTime,
             ).toLocaleString()}`,
@@ -275,7 +275,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                 ),
               ),
             ]).reply_markup,
-            parse_mode: 'MarkdownV2',
+            parse_mode: 'Markdown',
           });
 
           // set cron job for proposal start
@@ -285,7 +285,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
               bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
                 caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
                   sanitizeHtml(p.description),
-                  200,
+                  100,
                 )}`,
 
                 reply_markup: Markup.inlineKeyboard([
@@ -297,7 +297,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                     ),
                   ),
                 ]).reply_markup,
-                parse_mode: 'MarkdownV2',
+                parse_mode: 'Markdown',
               });
             },
             null,
@@ -313,7 +313,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
               bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
                 caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
                   sanitizeHtml(p.description),
-                  200,
+                  100,
                 )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
                   p.abstain || 0
                 }`,
@@ -326,7 +326,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                     ),
                   ),
                 ]).reply_markup,
-                parse_mode: 'MarkdownV2',
+                parse_mode: 'Markdown',
               });
             },
             null,
