@@ -72,7 +72,7 @@ export async function getDaoReportMessages(
         `${directLinkKeys.dao}${dao.address}`,
       )})\n----------------------\n${
         activeProposals.length > 0
-          ? `_Active proposals:_\n${activeProposals
+          ? `*Active proposals:*\n${activeProposals
               .map(
                 (p, index) =>
                   `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
@@ -88,7 +88,7 @@ export async function getDaoReportMessages(
           : ''
       }${
         pendingProposals.length > 0
-          ? `_Pending proposals:_\n${pendingProposals
+          ? `*Pending proposals:*\n${pendingProposals
               .map(
                 (p, index) =>
                   `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
