@@ -3,7 +3,7 @@ import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
 import { appConfig, directLinkKeys, messageVideoUrl } from './config';
-import { convertArrayToTable } from './utils';
+import { convertArrayToTable, truncate } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
 import * as api from './api';
@@ -259,11 +259,12 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
 
         if (nowUnixInSeconds < startTime) {
           bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
-            caption: `New proposal for *${dao.name}*\n\n*${p.title}*\n${sanitizeHtml(
-              p.description,
-            ).substring(0, 100)}...\n\nStarts on: ${new Date(
-              startTime,
-            ).toLocaleString()}\nEnds on: ${new Date(endTime).toLocaleString()}`,
+            caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
+              sanitizeHtml(p.description),
+              200,
+            )}\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
+              endTime,
+            ).toLocaleString()}`,
 
             reply_markup: Markup.inlineKeyboard([
               Markup.button.url(
@@ -274,7 +275,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                 ),
               ),
             ]).reply_markup,
-            parse_mode: 'Markdown',
+            parse_mode: 'MarkdownV2',
           });
 
           // set cron job for proposal start
@@ -282,9 +283,10 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             new Date(startTime),
             async () => {
               bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
-                caption: `Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${sanitizeHtml(
-                  p.description,
-                ).substring(0, 100)}...`,
+                caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
+                  sanitizeHtml(p.description),
+                  200,
+                )}`,
 
                 reply_markup: Markup.inlineKeyboard([
                   Markup.button.url(
@@ -295,7 +297,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                     ),
                   ),
                 ]).reply_markup,
-                parse_mode: 'Markdown',
+                parse_mode: 'MarkdownV2',
               });
             },
             null,
@@ -309,13 +311,12 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             new Date(endTime),
             async () => {
               bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
-                caption: `Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${sanitizeHtml(
-                  p.description,
-                )
-                  .substring(0, 100)
-                  .trim()}...\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${
-                  p.no || 0
-                }\n🤐 Abstain: ${p.abstain || 0}`,
+                caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
+                  sanitizeHtml(p.description),
+                  200,
+                )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
+                  p.abstain || 0
+                }`,
                 reply_markup: Markup.inlineKeyboard([
                   Markup.button.url(
                     'View results',
@@ -325,7 +326,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                     ),
                   ),
                 ]).reply_markup,
-                parse_mode: 'Markdown',
+                parse_mode: 'MarkdownV2',
               });
             },
             null,
