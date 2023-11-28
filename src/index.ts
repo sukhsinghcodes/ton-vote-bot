@@ -155,7 +155,7 @@ bot.command('report', async (ctx) => {
       messageToSend += message;
     });
 
-    ctx.sendAnimation(messageVideoUrl, {
+    ctx.sendVideo(messageVideoUrl, {
       caption: messageToSend,
       parse_mode: 'Markdown',
     });
@@ -258,7 +258,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         }
 
         if (nowUnixInSeconds < startTime) {
-          bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
+          bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
             caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
               sanitizeHtml(p.description),
               100,
@@ -282,7 +282,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(startTime),
             async () => {
-              bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
+              bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
                 caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
                   sanitizeHtml(p.description),
                   100,
@@ -310,7 +310,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(endTime),
             async () => {
-              bot.telegram.sendAnimation(subscription.groupId, messageVideoUrl, {
+              bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
                 caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
                   sanitizeHtml(p.description),
                   100,
