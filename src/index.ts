@@ -155,7 +155,7 @@ bot.command('report', async (ctx) => {
       messageToSend += message;
     });
 
-    ctx.sendVideo(messageVideoUrl, {
+    await ctx.sendVideo(messageVideoUrl, {
       caption: messageToSend,
       parse_mode: 'Markdown',
     });
@@ -192,10 +192,26 @@ bot.on('message', async (ctx) => {
 });
 
 bot.on('my_chat_member', async (ctx) => {
+  if (ctx.update.my_chat_member.new_chat_member.user.id !== bot.botInfo?.id) {
+    return;
+  }
+
   if (
-    ctx.update.my_chat_member.new_chat_member.user.id === bot.botInfo?.id &&
-    ctx.update.my_chat_member.new_chat_member.status !== 'member'
+    ctx.update.my_chat_member.new_chat_member.status === 'kicked' ||
+    ctx.update.my_chat_member.new_chat_member.status === 'left'
   ) {
+    try {
+      await db.clearProposals();
+      console.log('Cleared proposals!');
+      await db.clearSubscriptions();
+      console.log('Cleared subscriptions!');
+    } catch (err) {
+      console.log('An error occured when clearing db', err);
+    }
+    return;
+  }
+
+  if (ctx.update.my_chat_member.new_chat_member.status !== 'member') {
     return;
   }
 
@@ -210,9 +226,9 @@ const dailyReportScheduler = new CronJob('0 0 12 * * *', async () => {
 
   const messages = await getDaoReportMessages(subscriptions, bot.botInfo?.username || '');
 
-  messages.forEach(({ groupId, message }) => {
+  messages.forEach(async ({ groupId, message }) => {
     try {
-      bot.telegram.sendVideo(groupId, messageVideoUrl, {
+      await bot.telegram.sendVideo(groupId, messageVideoUrl, {
         caption: message,
         parse_mode: 'Markdown',
       });
@@ -231,7 +247,6 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
   try {
     for (const subscription of subscriptions) {
       const { daoAddress } = subscription;
-
       const dao = await api.dao(daoAddress);
 
       if (!dao) {
@@ -258,47 +273,55 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         }
 
         if (nowUnixInSeconds < startTime) {
-          bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-            caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
-              sanitizeHtml(p.description),
-              100,
-            )}\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
-              endTime,
-            ).toLocaleString()}`,
+          try {
+            await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
+              caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
+                sanitizeHtml(p.description),
+                100,
+              )}\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
+                endTime,
+              ).toLocaleString()}`,
 
-            reply_markup: Markup.inlineKeyboard([
-              Markup.button.url(
-                'View propsal',
-                appConfig.getGroupLaunchWebAppUrl(
-                  bot.botInfo?.username || '',
-                  `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+              reply_markup: Markup.inlineKeyboard([
+                Markup.button.url(
+                  'View propsal',
+                  appConfig.getGroupLaunchWebAppUrl(
+                    bot.botInfo?.username || '',
+                    `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                  ),
                 ),
-              ),
-            ]).reply_markup,
-            parse_mode: 'Markdown',
-          });
+              ]).reply_markup,
+              parse_mode: 'Markdown',
+            });
+          } catch (err) {
+            console.log('An error occured when sending new proposal message', err);
+          }
 
           // set cron job for proposal start
           new CronJob(
             new Date(startTime),
             async () => {
-              bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
-                  sanitizeHtml(p.description),
-                  100,
-                )}`,
+              try {
+                await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
+                  caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
+                    sanitizeHtml(p.description),
+                    100,
+                  )}`,
 
-                reply_markup: Markup.inlineKeyboard([
-                  Markup.button.url(
-                    'Vote now',
-                    appConfig.getGroupLaunchWebAppUrl(
-                      bot.botInfo?.username || '',
-                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                  reply_markup: Markup.inlineKeyboard([
+                    Markup.button.url(
+                      'Vote now',
+                      appConfig.getGroupLaunchWebAppUrl(
+                        bot.botInfo?.username || '',
+                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                      ),
                     ),
-                  ),
-                ]).reply_markup,
-                parse_mode: 'Markdown',
-              });
+                  ]).reply_markup,
+                  parse_mode: 'Markdown',
+                });
+              } catch (err) {
+                console.log('An error occured when sending proposal start message', err);
+              }
             },
             null,
             true,
@@ -310,24 +333,28 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           new CronJob(
             new Date(endTime),
             async () => {
-              bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
-                  sanitizeHtml(p.description),
-                  100,
-                )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
-                  p.abstain || 0
-                }`,
-                reply_markup: Markup.inlineKeyboard([
-                  Markup.button.url(
-                    'View results',
-                    appConfig.getGroupLaunchWebAppUrl(
-                      bot.botInfo?.username || '',
-                      `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+              try {
+                await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
+                  caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
+                    sanitizeHtml(p.description),
+                    100,
+                  )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
+                    p.abstain || 0
+                  }`,
+                  reply_markup: Markup.inlineKeyboard([
+                    Markup.button.url(
+                      'View results',
+                      appConfig.getGroupLaunchWebAppUrl(
+                        bot.botInfo?.username || '',
+                        `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
+                      ),
                     ),
-                  ),
-                ]).reply_markup,
-                parse_mode: 'Markdown',
-              });
+                  ]).reply_markup,
+                  parse_mode: 'Markdown',
+                });
+              } catch (err) {
+                console.log('An error occured when sending proposal start message', err);
+              }
             },
             null,
             true,
@@ -353,10 +380,20 @@ console.log('TON vote Bot started...');
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-async function clearProposals() {
-  if (process.env.CLEAR_PROPOSALS) {
-    await db.clearProposals();
-    console.log('Cleared proposals!');
+async function clearDb() {
+  try {
+    if (process.env.CLEAR_PROPOSALS || process.env.CLEAR_SUBS) {
+      await db.clearProposals();
+      console.log('Cleared proposals!');
+    }
+
+    if (process.env.CLEAR_SUBS) {
+      await db.clearSubscriptions();
+      console.log('Cleared subscriptions!');
+    }
+  } catch (err) {
+    console.log('An error occured when clearing db', err);
   }
 }
-clearProposals();
+
+clearDb();

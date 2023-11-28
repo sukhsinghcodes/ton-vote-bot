@@ -176,4 +176,17 @@ export class Database {
       });
     });
   }
+
+  clearSubscriptions(): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.db.run('DELETE FROM subscriptions', (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
+  }
 }
