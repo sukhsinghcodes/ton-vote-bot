@@ -338,9 +338,9 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
                   caption: `🏁 VOTING ENDED\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                     sanitizeHtml(p.description),
                     30,
-                  )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
+                  )}\n\n*Results*\n✅ Yes: *${p.yes || 0}*\n❌ No: *${p.no || 0}*\n🤐 Abstain: *${
                     p.abstain || 0
-                  }`,
+                  }*`,
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
                       'View proposal',

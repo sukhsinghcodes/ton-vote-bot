@@ -83,9 +83,9 @@ export async function getDaoReportMessages(
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                   )})
    ${truncate(sanitizeHtml(p.description), 30)}
-   ✅ Yes      ${p.yes || 0}
-   ❌ No       ${p.no || 0}
-   🤐 Abstain  ${p.abstain || 0}`,
+   ✅ Yes      *${p.yes || 0}*
+   ❌ No       *${p.no || 0}*
+   🤐 Abstain  *${p.abstain || 0}*`,
               )
               .join('\n\n')}`
           : ''
