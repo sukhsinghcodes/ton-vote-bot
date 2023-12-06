@@ -275,7 +275,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         if (nowUnixInSeconds < startTime) {
           try {
             await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-              caption: `🎉 NEW PROPOSAL\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
+              caption: `🎉 *NEW PROPOSAL*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                 sanitizeHtml(p.description),
                 30,
               )}\n\nStarts on: ${formateDateTime(new Date(startTime))}\nEnds on: ${formateDateTime(
@@ -303,7 +303,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `⏳ VOTING STARTED\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
+                  caption: `⏳ *VOTING STARTED*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                     sanitizeHtml(p.description),
                     30,
                   )}`,
@@ -335,7 +335,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `🏁 VOTING ENDED\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
+                  caption: `🏁 *VOTING ENDED*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                     sanitizeHtml(p.description),
                     30,
                   )}\n\n*Results*\n✅ Yes: *${p.yes || 0}*\n❌ No: *${p.no || 0}*\n🤐 Abstain: *${
