@@ -3,12 +3,15 @@ import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
 import { appConfig, directLinkKeys, messageVideoUrl } from './config';
-import { convertArrayToTable, formateDateTime, truncate } from './utils';
 import { WebAppDataSubscribe } from './types';
-import { getDaoReportMessages } from './messages';
+import {
+  getDaoReportMessages,
+  getNewProposalMessage,
+  getVoteEndedMessage,
+  getVoteStartedMessage,
+} from './messages';
 import * as api from './api';
 import { subscribe } from './commands';
-import sanitizeHtml from 'sanitize-html';
 
 const bot = new Telegraf<Context<Update>>(appConfig.apiToken);
 const db = new Database();
@@ -18,7 +21,15 @@ bot.start(async (ctx) => {
     const { chat } = ctx.message;
 
     if (chat.type === 'private') {
-      ctx.sendMessage('To get started, add me to a group.');
+      ctx.sendMessage(
+        `*Let's get started*\n\nPlease tap below to start voting in your favorite DAOs.\n\nGroup admins - Add this bot to your group to subscribe to notifications about your DAO`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: Markup.inlineKeyboard([
+            Markup.button.webApp('Open TON Vote', appConfig.twaUrl),
+          ]).reply_markup,
+        },
+      );
       return;
     }
   } catch (err) {
@@ -40,22 +51,21 @@ bot.action('subscribe', async (ctx) => {
   subscribe(chat, ctx, ctx.callbackQuery?.from.id);
 });
 
-bot.command('list', async (ctx) => {
+bot.command('admin', async (ctx) => {
   const { chat } = ctx.message;
   if (chat.type === 'private') {
     return;
   }
 
-  // Handle cmd list
   try {
     const subscriptions = await db.getAllByGroupId(ctx.chat.id);
 
     if (!subscriptions.length) {
-      await ctx.reply('You have no subscriptions.');
+      await ctx.reply('This group has no subscriptions on TON Vote.');
       return;
     }
 
-    const buttons = subscriptions.map((item) =>
+    const buttons = subscriptions.map((item) => [
       Markup.button.url(
         item.daoName,
 
@@ -64,46 +74,15 @@ bot.command('list', async (ctx) => {
           `${directLinkKeys.dao}${item.daoAddress}`,
         ),
       ),
-    );
-
-    const buttonsTable = convertArrayToTable(buttons, 2);
+      Markup.button.callback('🗑️', `rm:${item.daoAddress}`),
+    ]);
 
     await ctx.reply(`This group is subscribed to the following DAOs:`, {
-      reply_markup: Markup.inlineKeyboard(buttonsTable).reply_markup,
+      reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
       parse_mode: 'Markdown',
     });
   } catch (err) {
     console.log('An error occured when executing the list command', err);
-  }
-});
-
-bot.command('unsubscribe', async (ctx) => {
-  const { chat } = ctx.message;
-  if (chat.type === 'private') {
-    return;
-  }
-
-  // Handle cmd unsubscribe
-  try {
-    const subscriptions = await db.getAllByGroupId(ctx.chat.id);
-
-    if (!subscriptions.length) {
-      await ctx.reply('You have no subscriptions. To subscribe, use the /subscribe command.');
-      return;
-    }
-
-    const buttons = subscriptions.map((item) =>
-      Markup.button.callback(item.daoName, `rm:${item.daoAddress}`),
-    );
-
-    const buttonsTable = convertArrayToTable(buttons, 2);
-
-    await ctx.reply(
-      'Select the DAO you want to unsubscribe from:',
-      Markup.inlineKeyboard(buttonsTable),
-    );
-  } catch (err) {
-    console.log('An error occured when executing the unsubscribe command', err);
   }
 });
 
@@ -185,7 +164,15 @@ bot.on('message', async (ctx) => {
       daoName: data.name,
     });
 
-    ctx.reply(`You have subscribed to *${data.name}* ✅`, { parse_mode: 'MarkdownV2' });
+    const groupChat = await bot.telegram.getChat(data.groupId);
+
+    if (groupChat.type === 'private') {
+      return;
+    }
+
+    ctx.reply(`Group *${groupChat.title}* is now subscribed to space *${data.name}* ✅`, {
+      parse_mode: 'Markdown',
+    });
   } catch (err) {
     console.log('An error occured when subscribing', err);
   }
@@ -201,10 +188,9 @@ bot.on('my_chat_member', async (ctx) => {
     ctx.update.my_chat_member.new_chat_member.status === 'left'
   ) {
     try {
-      await db.clearProposals();
-      console.log('Cleared proposals!');
-      await db.clearSubscriptions();
-      console.log('Cleared subscriptions!');
+      // clear by group id
+      await db.clearProposalsByGroupId(ctx.chat.id);
+      await db.clearSubscriptionsByGroupId(ctx.chat.id);
     } catch (err) {
       console.log('An error occured when clearing db', err);
     }
@@ -267,7 +253,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         const endTime = p.proposalEndTime * 1000;
 
         // Check if proposal already exists
-        const proposal = await db.containsReadProposal(p.address);
+        const proposal = await db.containsReadProposal(p.address, subscription.groupId);
         if (proposal) {
           continue;
         }
@@ -275,16 +261,17 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         if (nowUnixInSeconds < startTime) {
           try {
             await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-              caption: `🎉 *NEW PROPOSAL*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
-                sanitizeHtml(p.description),
-                30,
-              )}\n\nStarts on: ${formateDateTime(new Date(startTime))}\nEnds on: ${formateDateTime(
-                new Date(endTime),
-              )}`,
+              caption: getNewProposalMessage({
+                daoName: dao.name,
+                proposalTitle: p.title,
+                proposalDescription: p.description,
+                startTime,
+                endTime,
+              }),
 
               reply_markup: Markup.inlineKeyboard([
                 Markup.button.url(
-                  'View proposal',
+                  '📬   View proposal',
                   appConfig.getGroupLaunchWebAppUrl(
                     bot.botInfo?.username || '',
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
@@ -303,14 +290,15 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `⏳ *VOTING STARTED*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
-                    sanitizeHtml(p.description),
-                    30,
-                  )}`,
+                  caption: getVoteStartedMessage({
+                    daoName: dao.name,
+                    proposalTitle: p.title,
+                    proposalDescription: p.description,
+                  }),
 
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
-                      'Vote now',
+                      '✍🏻 Vote now',
                       appConfig.getGroupLaunchWebAppUrl(
                         bot.botInfo?.username || '',
                         `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
@@ -335,15 +323,19 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `🏁 *VOTING ENDED*\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
-                    sanitizeHtml(p.description),
-                    30,
-                  )}\n\n*Results*\n✅ Yes: *${p.yes || 0}*\n❌ No: *${p.no || 0}*\n🤐 Abstain: *${
-                    p.abstain || 0
-                  }*`,
+                  caption: getVoteEndedMessage({
+                    daoName: dao.name,
+                    proposalTitle: p.title,
+                    proposalDescription: p.description,
+                    results: {
+                      yes: p.yes || 0,
+                      no: p.no || 0,
+                      abstain: p.abstain || 0,
+                    },
+                  }),
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
-                      'View proposal',
+                      '📊 View results',
                       appConfig.getGroupLaunchWebAppUrl(
                         bot.botInfo?.username || '',
                         `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
@@ -361,7 +353,7 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
           );
         }
 
-        await db.insertReadProposal(p.address);
+        await db.insertReadProposal(p.address, subscription.groupId);
         console.log(`added proposal(${p.address}) to read proposals`);
       }
     }

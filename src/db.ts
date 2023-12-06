@@ -21,7 +21,8 @@ export class Database {
 
     const createReadProposalsTable = `
       CREATE TABLE IF NOT EXISTS readProposals (
-        id TEXT PRIMARY KEY NOT NULL
+        id TEXT PRIMARY KEY NOT NULL,
+        groupId INTEGER NOT NULL
       )
     `;
 
@@ -133,14 +134,14 @@ export class Database {
     });
   }
 
-  insertReadProposal(id: string): Promise<boolean> {
+  insertReadProposal(proposalId: string, groupId: number): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       const insert = `
-        INSERT INTO readProposals (id)
-        VALUES (?)
+        INSERT INTO readProposals (id, groupId)
+        VALUES (?, ?)
       `;
 
-      this.db.run(insert, [id], (err) => {
+      this.db.run(insert, [`${proposalId}:${groupId}`, groupId], (err) => {
         if (err) {
           reject(err);
           return;
@@ -151,16 +152,20 @@ export class Database {
     });
   }
 
-  containsReadProposal(id: string): Promise<boolean> {
+  containsReadProposal(proposalId: string, groupId: number): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      this.db.all('SELECT * FROM readProposals WHERE id = ?', [id], (err, rows: string[]) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      this.db.all(
+        'SELECT * FROM readProposals WHERE id = ?',
+        [`${proposalId}:${groupId}`],
+        (err, rows: string[]) => {
+          if (err) {
+            reject(err);
+            return;
+          }
 
-        resolve(rows.length > 0);
-      });
+          resolve(rows.length > 0);
+        },
+      );
     });
   }
 
@@ -180,6 +185,32 @@ export class Database {
   clearSubscriptions(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
       this.db.run('DELETE FROM subscriptions', (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
+  }
+
+  clearProposalsByGroupId(groupId: number): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.db.run('DELETE FROM readProposals WHERE groupId = ?', [groupId], (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
+  }
+
+  clearSubscriptionsByGroupId(groupId: number): Promise<boolean> {
+    return new Promise<boolean>((resolve, reject) => {
+      this.db.run('DELETE FROM subscriptions WHERE groupId = ?', [groupId], (err) => {
         if (err) {
           reject(err);
           return;
