@@ -67,35 +67,38 @@ export async function getDaoReportMessages(
         currentIndex = messages.length - 1;
       }
 
-      messages[currentIndex].message += `[${dao.name}](${appConfig.getGroupLaunchWebAppUrl(
+      messages[currentIndex].message += `DAO: [${truncate(
+        dao.name,
+        30,
+      )}](${appConfig.getGroupLaunchWebAppUrl(
         botUsername,
         `${directLinkKeys.dao}${dao.address}`,
-      )})\n----------------------\n${
+      )})\n\n${
         activeProposals.length > 0
-          ? `*Active proposals:*\n${activeProposals
+          ? `*Active proposals:*\n\n${activeProposals
               .map(
                 (p, index) =>
                   `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
                     botUsername,
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                   )})
-   ${truncate(sanitizeHtml(p.description), 100)}
+   ${truncate(sanitizeHtml(p.description), 30)}
    ✅ Yes      ${p.yes || 0}
    ❌ No       ${p.no || 0}
    🤐 Abstain  ${p.abstain || 0}`,
               )
-              .join('\n\n')}\n\n`
+              .join('\n\n')}`
           : ''
       }${
         pendingProposals.length > 0
-          ? `*Pending proposals:*\n${pendingProposals
+          ? `\n\n*Upcoming proposals:*\n${pendingProposals
               .map(
                 (p, index) =>
                   `${index + 1}. [${p.title}](${appConfig.getGroupLaunchWebAppUrl(
                     botUsername,
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
                   )}) 
-   ${truncate(sanitizeHtml(p.description), 100)}`,
+   ${truncate(sanitizeHtml(p.description), 30)}`,
               )
               .join('\n\n')}`
           : ''

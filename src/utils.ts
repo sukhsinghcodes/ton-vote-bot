@@ -33,3 +33,14 @@ export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
 export function truncate(str: string, n: number) {
   return str.length > n ? str.slice(0, n - 1).trim() + '...' : str.trim();
 }
+
+export function formateDateTime(date: Date): string {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  return `${day}/${month}/${year} ${hours}:${minutes} UTC`;
+}

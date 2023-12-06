@@ -3,7 +3,7 @@ import { CronJob } from 'cron';
 import { CallbackQuery, Message, Update } from 'telegraf/typings/core/types/typegram';
 import { Database } from './db';
 import { appConfig, directLinkKeys, messageVideoUrl } from './config';
-import { convertArrayToTable, truncate } from './utils';
+import { convertArrayToTable, formateDateTime, truncate } from './utils';
 import { WebAppDataSubscribe } from './types';
 import { getDaoReportMessages } from './messages';
 import * as api from './api';
@@ -275,16 +275,16 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
         if (nowUnixInSeconds < startTime) {
           try {
             await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-              caption: `🎉 New proposal for *${dao.name}*\n\n*${p.title}*\n${truncate(
+              caption: `🎉 NEW PROPOSAL\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                 sanitizeHtml(p.description),
-                100,
-              )}\n\nStarts on: ${new Date(startTime).toLocaleString()}\nEnds on: ${new Date(
-                endTime,
-              ).toLocaleString()}`,
+                30,
+              )}\n\nStarts on: ${formateDateTime(new Date(startTime))}\nEnds on: ${formateDateTime(
+                new Date(endTime),
+              )}`,
 
               reply_markup: Markup.inlineKeyboard([
                 Markup.button.url(
-                  'View propsal',
+                  'View proposal',
                   appConfig.getGroupLaunchWebAppUrl(
                     bot.botInfo?.username || '',
                     `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
@@ -303,9 +303,9 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `⏳ Proposal for *${dao.name}* has started!\n\n*${p.title}*\n${truncate(
+                  caption: `⏳ VOTING STARTED\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                     sanitizeHtml(p.description),
-                    100,
+                    30,
                   )}`,
 
                   reply_markup: Markup.inlineKeyboard([
@@ -335,15 +335,15 @@ const proposalScheduler = new CronJob('0 */1 * * * *', async () => {
             async () => {
               try {
                 await bot.telegram.sendVideo(subscription.groupId, messageVideoUrl, {
-                  caption: `🏁 Proposal for *${dao.name}* has ended!\n\n*${p.title}*\n${truncate(
+                  caption: `🏁 VOTING ENDED\n\nDAO: *${dao.name}*\n\n*${p.title}*\n${truncate(
                     sanitizeHtml(p.description),
-                    100,
+                    30,
                   )}\n\n*Results*\n✅ Yes: ${p.yes || 0}\n❌ No: ${p.no || 0}\n🤐 Abstain: ${
                     p.abstain || 0
                   }`,
                   reply_markup: Markup.inlineKeyboard([
                     Markup.button.url(
-                      'View results',
+                      'View proposal',
                       appConfig.getGroupLaunchWebAppUrl(
                         bot.botInfo?.username || '',
                         `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
