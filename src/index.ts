@@ -77,7 +77,7 @@ bot.command('admin', async (ctx) => {
     buttons.push([Markup.button.callback('📊 Report', 'report')]);
 
     await ctx.reply(
-      `Manage the TON Vote subscriptions for this group.\n\n- Add/remove subscriptions to spaces\n- View a report of your subscriptions`,
+      `Manage the TON Vote subscriptions for this group.\n\n- Add/remove subscriptions\n- View a report of your subscriptions`,
       {
         reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
         parse_mode: 'Markdown',
