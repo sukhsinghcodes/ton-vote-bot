@@ -37,10 +37,6 @@ bot.start(async (ctx) => {
   }
 });
 
-bot.command('subscribe', async (ctx) => {
-  subscribe(ctx.message.chat, ctx, ctx.message.from.id);
-});
-
 bot.action('subscribe', async (ctx) => {
   const chat = ctx.callbackQuery?.message?.chat;
 
@@ -77,10 +73,16 @@ bot.command('admin', async (ctx) => {
       Markup.button.callback('🗑️', `rm:${item.daoAddress}`),
     ]);
 
-    await ctx.reply(`This group is subscribed to the following DAOs:`, {
-      reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
-      parse_mode: 'Markdown',
-    });
+    buttons.push([Markup.button.callback('🪄 Subscribe', 'subscribe')]);
+    buttons.push([Markup.button.callback('📊 Report', 'report')]);
+
+    await ctx.reply(
+      `Manage the TON Vote subscriptions for this group.\n\n- Add/remove subscriptions to spaces\n- View a report of your subscriptions`,
+      {
+        reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
+        parse_mode: 'Markdown',
+      },
+    );
   } catch (err) {
     console.log('An error occured when executing the list command', err);
   }
@@ -107,15 +109,20 @@ bot.action(/^rm:/g, async (ctx) => {
   }
 });
 
-bot.command('report', async (ctx) => {
-  const { chat } = ctx.message;
+bot.action('report', async (ctx) => {
+  const chat = ctx.callbackQuery?.message?.chat;
+
+  if (!chat) {
+    return;
+  }
+
   if (chat.type === 'private') {
     return;
   }
 
   // Handle cmd report
   try {
-    const subscriptions = await db.getAllByGroupId(ctx.chat.id);
+    const subscriptions = await db.getAllByGroupId(chat.id);
 
     if (!subscriptions.length) {
       await ctx.reply('You have no subscriptions.');
@@ -125,7 +132,7 @@ bot.command('report', async (ctx) => {
     const messages = await getDaoReportMessages(subscriptions, bot.botInfo?.username || '');
 
     if (!messages.length) {
-      await ctx.reply('There are no active or pending proposals for your subscriptions.');
+      await ctx.reply('There are no active or upcoming proposals for your subscriptions.');
       return;
     }
 
