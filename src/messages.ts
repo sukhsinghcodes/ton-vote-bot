@@ -36,7 +36,7 @@ export function getReportMessage({
      ✅ Yes          ${p.yes || 0}
      ❌ No           ${p.no || 0}
      🤐 Abstain   ${p.abstain || 0}\n\n     _Ends in ${formatDistance(
-       p.proposalEndTime,
+       p.proposalEndTime * 1000,
        Date.now(),
      )}_`,
           )
@@ -52,7 +52,7 @@ export function getReportMessage({
                 `${directLinkKeys.dao}${daoAddress}${directLinkKeys.separator}${directLinkKeys.proposal}${p.address}`,
               )}) 
      ${truncate(sanitizeHtml(p.description), 30)}\n\n     _Starts in ${formatDistance(
-       p.proposalStartTime,
+       p.proposalStartTime * 1000,
        Date.now(),
      )}_`,
           )
