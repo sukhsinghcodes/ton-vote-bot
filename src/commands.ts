@@ -12,12 +12,12 @@ export async function subscribe(chat: Chat, ctx: Context, fromId: number) {
     const isAdmin = admins.some((admin) => admin.user.id === fromId);
 
     if (isAdmin) {
-      ctx.telegram.sendMessage(fromId, SubscribeMessages.start(chat.title), {
+      await ctx.telegram.sendMessage(fromId, SubscribeMessages.start(chat.title), {
         parse_mode: 'Markdown',
         reply_markup: SubscribeMessages.buttonReplyMarkup(chat.id),
       });
     } else {
-      ctx.telegram.sendMessage(fromId, SubscribeMessages.notAdmin(chat.title));
+      await ctx.telegram.sendMessage(fromId, SubscribeMessages.notAdmin(chat.title));
     }
   } catch (err) {
     console.log(err);

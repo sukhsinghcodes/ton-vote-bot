@@ -44,7 +44,9 @@ bot.action('subscribe', async (ctx) => {
     return;
   }
 
-  subscribe(chat, ctx, ctx.callbackQuery?.from.id);
+  await subscribe(chat, ctx, ctx.callbackQuery?.from.id);
+
+  ctx.deleteMessage();
 });
 
 bot.command('admin', async (ctx) => {
@@ -54,6 +56,13 @@ bot.command('admin', async (ctx) => {
   }
 
   try {
+    const admins = await ctx.getChatAdministrators();
+    const isAdmin = admins.some((admin) => admin.user.id === ctx.from.id);
+
+    if (!isAdmin) {
+      return;
+    }
+
     const subscriptions = await db.getAllByGroupId(ctx.chat.id);
 
     if (!subscriptions.length) {
@@ -75,6 +84,7 @@ bot.command('admin', async (ctx) => {
 
     buttons.push([Markup.button.callback('🪄 Subscribe', 'subscribe')]);
     buttons.push([Markup.button.callback('📊 Report', 'report')]);
+    buttons.push([Markup.button.callback('❌ Close', 'close')]);
 
     await ctx.reply(
       `Manage the TON Vote subscriptions for this group.\n\n- Add/remove subscriptions\n- View a report of your subscriptions`,
@@ -86,6 +96,10 @@ bot.command('admin', async (ctx) => {
   } catch (err) {
     console.log('An error occured when executing the list command', err);
   }
+});
+
+bot.action('close', async (ctx) => {
+  ctx.deleteMessage();
 });
 
 bot.action(/^rm:/g, async (ctx) => {
@@ -145,6 +159,8 @@ bot.action('report', async (ctx) => {
       caption: messageToSend,
       parse_mode: 'Markdown',
     });
+
+    ctx.deleteMessage();
   } catch (err) {
     console.log('An error occured when executing the report command', err);
   }
